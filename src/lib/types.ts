@@ -27,9 +27,11 @@ export interface Produit {
   prix: number;
   description: string | null;
   stock: number;
+  quantiteStock?: number;
   actif: boolean;
   partenaireId: number | null;
   partenaireNom: string | null;
+  partenaire?: Partenaire | null;
 }
 
 export interface ProduitStockStats {
@@ -93,6 +95,8 @@ export interface Livreur {
   username: string;
   nom: string | null;
   prenom: string | null;
+  email?: string | null;
+  telephone?: string | null;
   role: string;
   dateCreation: string;
 }
