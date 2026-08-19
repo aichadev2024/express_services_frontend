@@ -1,6 +1,6 @@
 import type { ApiErrorBody } from './types';
 
-export const API_BASE = 'http://localhost:8080/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://express-services-backend.onrender.com/api';
 
 interface ApiFetchOptions {
   method?: string;
