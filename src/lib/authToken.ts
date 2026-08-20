@@ -12,10 +12,14 @@ function emitChange() {
 
 function subscribe(listener: Listener) {
   listeners.add(listener);
-  window.addEventListener('storage', listener);
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', listener);
+  }
   return () => {
     listeners.delete(listener);
-    window.removeEventListener('storage', listener);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', listener);
+    }
   };
 }
 
@@ -29,14 +33,25 @@ function getServerSnapshot(): string | null {
  * de rendu en cascade et un rendu serveur/client coherent des le depart.
  */
 export function useStoredToken(key: string): string | null {
-  return useSyncExternalStore(subscribe, () => localStorage.getItem(key), getServerSnapshot);
+  return useSyncExternalStore(
+    subscribe,
+    () => {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem(key);
+      }
+      return null;
+    },
+    getServerSnapshot
+  );
 }
 
 export function setStoredToken(key: string, value: string | null | undefined): void {
-  if (value === null || value === undefined) {
-    localStorage.removeItem(key);
-  } else {
-    localStorage.setItem(key, value);
+  if (typeof window !== 'undefined') {
+    if (value === null || value === undefined) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+    emitChange();
   }
-  emitChange();
 }

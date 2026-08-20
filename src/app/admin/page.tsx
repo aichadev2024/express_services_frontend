@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '@/lib/api';
 import type { DashboardStats } from '@/lib/types';
+import { useStoredToken } from '@/lib/authToken';
 
 interface Kpis {
   totalToday: number;
@@ -22,6 +23,7 @@ interface AdminProfile {
 }
 
 export default function AdminDashboard() {
+  const token = useStoredToken('admin_token');
   const [kpis, setKpis] = useState<Kpis>({
     totalToday: 0,
     pending: 0,
@@ -44,7 +46,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
+    if (!token) return;
     async function loadStats() {
       try {
         const data = await apiFetch<DashboardStats>('/commandes/dashboard-stats', { token });
