@@ -18,7 +18,8 @@ export default function AdminCommandes() {
   const loadOrders = async () => {
     const path = filterStatus ? `/commandes?statut=${filterStatus}` : '/commandes';
     try {
-      setOrders(await apiFetch<Commande[]>(path, { token }));
+      const res = await apiFetch<Commande[]>(path, { token }).catch(() => []);
+      setOrders(Array.isArray(res) ? res : []);
     } catch (err) {
       showToast('Erreur lors du chargement des commandes.', 'error');
     }
@@ -26,7 +27,8 @@ export default function AdminCommandes() {
 
   const loadDrivers = async () => {
     try {
-      setDrivers(await apiFetch<Livreur[]>('/auth/livreurs', { token }));
+      const res = await apiFetch<Livreur[]>('/auth/livreurs', { token }).catch(() => []);
+      setDrivers(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error('Error preloading drivers', err);
     }

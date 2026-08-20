@@ -9,7 +9,7 @@ import type { Produit, ProduitStockStats, Partenaire } from '@/lib/types';
 export default function AdminStocks() {
   const token = useStoredToken('admin_token');
   const [stocks, setStocks] = useState<ProduitStockStats[]>([]);
-  const [allProducts, setAllProducts] = useState<Produit[]>([]); // pour retrouver le partenaire de chaque produit dans le tableau
+  const [allProducts, setAllProducts] = useState<Produit[]>([]);
   const [partenaires, setPartenaires] = useState<Partenaire[]>([]);
   const { toasts, showToast } = useToasts();
 
@@ -23,13 +23,14 @@ export default function AdminStocks() {
   const [productPartenaireId, setProductPartenaireId] = useState('');
 
   const loadStocks = async () => {
+    if (!token) return;
     try {
       const [statsData, prodData] = await Promise.all([
-        apiFetch<ProduitStockStats[]>('/produits/stats', { token }),
-        apiFetch<Produit[]>('/produits?actifSeulement=false'),
+        apiFetch<ProduitStockStats[]>('/produits/stats', { token }).catch(() => []),
+        apiFetch<Produit[]>('/produits?actifSeulement=false').catch(() => []),
       ]);
-      setStocks(statsData);
-      setAllProducts(prodData);
+      setStocks(Array.isArray(statsData) ? statsData : []);
+      setAllProducts(Array.isArray(prodData) ? prodData : []);
     } catch (err) {
       showToast('Erreur lors du chargement des stocks.', 'error');
     }
@@ -37,7 +38,8 @@ export default function AdminStocks() {
 
   const loadPartenaires = async () => {
     try {
-      setPartenaires(await apiFetch<Partenaire[]>('/partenaires'));
+      const data = await apiFetch<Partenaire[]>('/partenaires').catch(() => []);
+      setPartenaires(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error loading partenaires', err);
     }
@@ -52,13 +54,15 @@ export default function AdminStocks() {
   const handleEditProductClick = async (prod: { id: number }) => {
     try {
       const data = await apiFetch<Produit>(`/produits/${prod.id}`, { token });
-      setProductId(String(data.id));
-      setProductNom(data.nom);
-      setProductPrix(String(data.prix));
-      setProductStock(String(data.stock));
-      setProductDesc(data.description || '');
-      setProductActif(data.actif);
-      setProductPartenaireId(data.partenaireId ? String(data.partenaireId) : '');
+      if (data) {
+        setProductId(String(data.id));
+        setProductNom(data.nom || '');
+        setProductPrix(String(data.prix ?? 0));
+        setProductStock(String(data.stock ?? 0));
+        setProductDesc(data.description || '');
+        setProductActif(data.actif ?? true);
+        setProductPartenaireId(data.partenaireId ? String(data.partenaireId) : '');
+      }
     } catch (err) {
       showToast('Impossible de charger les détails du produit.', 'error');
     }
@@ -99,6 +103,10 @@ export default function AdminStocks() {
     }
   };
 
+  const safeStocks = Array.isArray(stocks) ? stocks : [];
+  const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
+  const safePartenaires = Array.isArray(partenaires) ? partenaires : [];
+
   return (
     <div className="subtab-pane active">
       <div className="stock-grid">
@@ -122,20 +130,21 @@ export default function AdminStocks() {
                 </tr>
               </thead>
               <tbody>
-                {stocks.length === 0 ? (
+                {safeStocks.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center' }}>Aucun produit trouvé.</td>
                   </tr>
                 ) : (
-                  stocks.map(s => {
-                    const fullProduct = allProducts.find(p => p.id === s.id);
+                  safeStocks.map(s => {
+                    const fullProduct = safeAllProducts.find(p => p.id === s.id);
+                    const stockDispo = s.stockDisponible ?? 0;
                     return (
                       <tr key={s.id}>
-                        <td><strong>{s.nom}</strong></td>
+                        <td><strong>{s.nom || 'Sans nom'}</strong></td>
                         <td>{fullProduct?.partenaireNom || <span className="text-muted">—</span>}</td>
-                        <td><span className={`badge ${s.stockDisponible > 5 ? 'livree' : 'annulee'}`}>{s.stockDisponible} en stock</span></td>
-                        <td><span className="badge en_cours">{s.sortisPourLivraison} sortis</span></td>
-                        <td><span className="badge reportee">{s.retournes} retournés</span></td>
+                        <td><span className={`badge ${stockDispo > 5 ? 'livree' : 'annulee'}`}>{stockDispo} en stock</span></td>
+                        <td><span className="badge en_cours">{s.sortisPourLivraison ?? 0} sortis</span></td>
+                        <td><span className="badge reportee">{s.retournes ?? 0} retournés</span></td>
                         <td>
                           <button onClick={() => handleEditProductClick(s)} className="btn btn-secondary btn-sm">
                             <i className="fa-solid fa-pen-to-square"></i> Modifier / Stock
@@ -206,7 +215,7 @@ export default function AdminStocks() {
               <label>Partenaire propriétaire (optionnel)</label>
               <select value={productPartenaireId} onChange={(e) => setProductPartenaireId(e.target.value)}>
                 <option value="">Aucun (catalogue général)</option>
-                {partenaires.map(p => (
+                {safePartenaires.map(p => (
                   <option key={p.id} value={p.id}>{p.nom}</option>
                 ))}
               </select>
