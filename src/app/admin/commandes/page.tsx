@@ -36,6 +36,12 @@ export default function AdminCommandes() {
     if (!token) return;
     loadOrders();
     loadDrivers();
+
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, [token, filterStatus]);
 
   const handleAssignDriver = async (orderId: number, livreurIdVal: string) => {

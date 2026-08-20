@@ -71,7 +71,13 @@ export default function AdminDashboard() {
     }
     loadStats();
     loadProfile();
-  }, []);
+
+    const interval = setInterval(() => {
+      loadStats();
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [token]);
 
   return (
     <div className="subtab-pane active">
