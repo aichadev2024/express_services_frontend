@@ -24,6 +24,7 @@ interface AdminProfile {
 
 export default function AdminDashboard() {
   const token = useStoredToken('admin_token');
+  const [dataLoading, setDataLoading] = useState(true);
   const [kpis, setKpis] = useState<Kpis>({
     totalToday: 0,
     pending: 0,
@@ -47,7 +48,33 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!token) return;
-    async function loadStats() {
+    async function loadInitialData() {
+      try {
+        const [statsData, profileData] = await Promise.all([
+          apiFetch<DashboardStats>('/commandes/dashboard-stats', { token }).catch(() => null),
+          apiFetch<AdminProfile>('/auth/profile', { token }).catch(() => null)
+        ]);
+        if (statsData) {
+          setKpis({
+            totalToday: statsData.totalCommandesDuJour ?? 0,
+            pending: statsData.commandesEnAttente ?? 0,
+            delivery: statsData.commandesEnCours ?? 0,
+            delivered: statsData.commandesLivrees ?? 0,
+            revenue: statsData.montantTotalDuJour ?? 0,
+          });
+        }
+        if (profileData) {
+          setProfile(profileData);
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data', err);
+      } finally {
+        setDataLoading(false);
+      }
+    }
+    loadInitialData();
+
+    const interval = setInterval(async () => {
       try {
         const data = await apiFetch<DashboardStats>('/commandes/dashboard-stats', { token });
         if (data) {
@@ -62,24 +89,19 @@ export default function AdminDashboard() {
       } catch (err) {
         console.error('Error fetching KPIs', err);
       }
-    }
-    async function loadProfile() {
-      try {
-        const data = await apiFetch<AdminProfile>('/auth/profile', { token });
-        setProfile(data);
-      } catch (err) {
-        console.error('Error fetching admin profile', err);
-      }
-    }
-    loadStats();
-    loadProfile();
-
-    const interval = setInterval(() => {
-      loadStats();
     }, 4000);
 
     return () => clearInterval(interval);
   }, [token]);
+
+  if (dataLoading) {
+    return (
+      <div className="subtab-pane active" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '15px' }}>
+        <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: '32px', color: 'var(--color-secondary)' }}></i>
+        <span style={{ fontSize: '15px', color: 'var(--color-primary)', fontWeight: 600 }}>Chargement du tableau de bord...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="subtab-pane active">

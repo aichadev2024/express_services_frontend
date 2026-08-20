@@ -24,7 +24,12 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/admin/quartiers', label: 'Quartiers', icon: 'fa-location-dot' },
 ];
 
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const token = useStoredToken('admin_token');
+
   const [mounted, setMounted] = useState(false);
+  const [showAdminPassModal, setShowAdminPassModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -66,6 +71,7 @@ const ADMIN_NAV: NavItem[] = [
   const [showChangeOldPass, setShowChangeOldPass] = useState(false);
   const [showChangeNewPass, setShowChangeNewPass] = useState(false);
   const [showChangeConfirmPass, setShowChangeConfirmPass] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -81,28 +87,14 @@ const ADMIN_NAV: NavItem[] = [
         console.error("Erreur lors de la vérification de l'existence d'un administrateur", err);
       }
     }
-    checkAdmin();
+    if (!token) {
+      checkAdmin();
+    }
   }, [token]);
 
   // Check if password change is required on load or token update
   useEffect(() => {
-    if (!token) {
-      setMustChangePassword(false);
-      return;
-    }
-    async function loadUserProfile() {
-      try {
-        const data = await apiFetch<any>('/auth/profile', { token });
-        if (data.firstLogin) {
-          setMustChangePassword(true);
-        } else {
-          setMustChangePassword(false);
-        }
-      } catch (err) {
-        console.error("Could not fetch user profile", err);
-      }
-    }
-    loadUserProfile();
+    if (!token) return;
   }, [token]);
 
   const handleRegisterSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -140,6 +132,7 @@ const ADMIN_NAV: NavItem[] = [
   const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginError('');
+    setIsLoggingIn(true);
     try {
       const data = await apiFetch<any>('/auth/login', {
         method: 'POST',
@@ -149,34 +142,43 @@ const ADMIN_NAV: NavItem[] = [
         setOtpRequired(true);
         showToast('Code OTP de validation requis pour votre première connexion.', 'warning');
       } else {
-        setStoredToken('admin_token', data.token);
-        showToast('Connexion administrative réussie.');
         if (data.firstLogin) {
           setMustChangePassword(true);
+        } else {
+          setMustChangePassword(false);
         }
+        setStoredToken('admin_token', data.token);
+        showToast('Connexion administrative réussie.');
       }
     } catch (err: any) {
       setLoginError(err.message || 'Identifiant ou mot de passe incorrect.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleOtpSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginError('');
+    setIsLoggingIn(true);
     try {
       const data = await apiFetch<any>('/auth/verify-otp', {
         method: 'POST',
         body: { username: loginUsername, otpCode }
       });
+      if (data.firstLogin) {
+        setMustChangePassword(true);
+      } else {
+        setMustChangePassword(false);
+      }
       setStoredToken('admin_token', data.token);
       showToast('Validation OTP réussie.');
       setOtpRequired(false);
       setOtpCode('');
-      if (data.firstLogin) {
-        setMustChangePassword(true);
-      }
     } catch (err: any) {
       setLoginError(err.message || 'Code OTP incorrect ou expiré.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -384,8 +386,12 @@ const ADMIN_NAV: NavItem[] = [
                         </div>
                       </div>
 
-                      <button type="submit" className="btn btn-primary login-btn">
-                        Se Connecter <i className="fa-solid fa-arrow-right"></i>
+                      <button type="submit" className="btn btn-primary login-btn" disabled={isLoggingIn}>
+                        {isLoggingIn ? (
+                          <>Connexion en cours... <i className="fa-solid fa-spinner fa-spin"></i></>
+                        ) : (
+                          <>Se Connecter <i className="fa-solid fa-arrow-right"></i></>
+                        )}
                       </button>
                     </form>
                   )}
@@ -518,119 +524,7 @@ const ADMIN_NAV: NavItem[] = [
     );
   }
 
-  if (mustChangePassword) {
-    return (
-      <div className="app-container">
-        <Header activeHref="/admin" />
-        <div className="login-container" style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
-          <div className="card glass-card" style={{ maxWidth: '450px', width: '100%', padding: '30px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '24px', boxShadow: '0 10px 30px rgba(13,33,73,0.05)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-              <div className="login-logo" style={{ background: 'rgba(255, 30, 39, 0.05)', color: 'var(--color-secondary)', width: '60px', height: '60px', borderRadius: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '15px' }}>
-                <i className="fa-solid fa-key"></i>
-              </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary)', margin: '0 0 8px 0' }}>Nouveau Mot de Passe Requis</h2>
-              <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-                Pour des raisons de sécurité, vous devez modifier votre mot de passe temporaire lors de votre première connexion.
-              </p>
-            </div>
 
-            <form onSubmit={handleChangePasswordSubmit} className="login-form" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div className="login-input-group">
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mot de Passe Actuel</label>
-                <div className="input-wrapper" style={{ position: 'relative' }}>
-                  <i className="fa-solid fa-lock"></i>
-                  <input
-                    type={showChangeOldPass ? 'text' : 'password'}
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    required
-                    placeholder="Saisir votre mot de passe temporaire"
-                    style={{ width: '100%', paddingRight: '45px' }}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle-btn"
-                    onClick={() => setShowChangeOldPass(!showChangeOldPass)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                  >
-                    <i className={`fa-solid ${showChangeOldPass ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="login-input-group">
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nouveau Mot de Passe</label>
-                <div className="input-wrapper" style={{ position: 'relative' }}>
-                  <i className="fa-solid fa-key"></i>
-                  <input
-                    type={showChangeNewPass ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    placeholder="Minimum 6 caractères"
-                    style={{ width: '100%', paddingRight: '45px' }}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle-btn"
-                    onClick={() => setShowChangeNewPass(!showChangeNewPass)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                  >
-                    <i className={`fa-solid ${showChangeNewPass ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="login-input-group">
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Confirmer le Nouveau Mot de Passe</label>
-                <div className="input-wrapper" style={{ position: 'relative' }}>
-                  <i className="fa-solid fa-circle-check"></i>
-                  <input
-                    type={showChangeConfirmPass ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    placeholder="Confirmez le nouveau mot de passe"
-                    style={{ width: '100%', paddingRight: '45px' }}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle-btn"
-                    onClick={() => setShowChangeConfirmPass(!showChangeConfirmPass)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                  >
-                    <i className={`fa-solid ${showChangeConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                  </button>
-                </div>
-              </div>
-
-              {changePassError && (
-                <div className="login-error-badge">
-                  <span>{changePassError}</span>
-                </div>
-              )}
-
-              <button type="submit" className="btn btn-primary login-btn" style={{ marginTop: '10px' }}>
-                Changer le Mot de Passe <i className="fa-solid fa-save"></i>
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleLogout}
-                style={{ width: '100%' }}
-              >
-                Annuler & Déconnexion
-              </button>
-            </form>
-          </div>
-        </div>
-        <ToastContainer toasts={toasts} />
-      </div>
-    );
-  }
-
-  const [showAdminPassModal, setShowAdminPassModal] = useState(false);
 
   return (
     <div className="app-container">
