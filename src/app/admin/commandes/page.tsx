@@ -138,8 +138,8 @@ export default function AdminCommandes() {
                         <span className="text-muted">{order.adressePrecise}</span>
                       </td>
                       <td>
-                        <strong>{order.montantTotal.toLocaleString()} FCFA</strong><br />
-                        <span className="text-muted" style={{ fontSize: '11px' }}>(Livraison: {order.tarifLivraison.toLocaleString()})</span>
+                        <strong>{(order.montantTotal ?? 0).toLocaleString()} FCFA</strong><br />
+                        <span className="text-muted" style={{ fontSize: '11px' }}>(Livraison: {(order.tarifLivraison ?? 0).toLocaleString()})</span>
                       </td>
                       <td>{formattedDate}</td>
                       <td>

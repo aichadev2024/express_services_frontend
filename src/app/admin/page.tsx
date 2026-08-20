@@ -50,13 +50,15 @@ export default function AdminDashboard() {
     async function loadStats() {
       try {
         const data = await apiFetch<DashboardStats>('/commandes/dashboard-stats', { token });
-        setKpis({
-          totalToday: data.totalCommandesDuJour,
-          pending: data.commandesEnAttente,
-          delivery: data.commandesEnCours,
-          delivered: data.commandesLivrees,
-          revenue: data.montantTotalDuJour,
-        });
+        if (data) {
+          setKpis({
+            totalToday: data.totalCommandesDuJour ?? 0,
+            pending: data.commandesEnAttente ?? 0,
+            delivery: data.commandesEnCours ?? 0,
+            delivered: data.commandesLivrees ?? 0,
+            revenue: data.montantTotalDuJour ?? 0,
+          });
+        }
       } catch (err) {
         console.error('Error fetching KPIs', err);
       }
@@ -156,7 +158,7 @@ export default function AdminDashboard() {
           <div className="kpi-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div>
           <div className="kpi-info">
             <span className="kpi-title">Montant Total du Jour</span>
-            <span className="kpi-value">{kpis.revenue.toLocaleString()} FCFA</span>
+            <span className="kpi-value">{(kpis?.revenue ?? 0).toLocaleString()} FCFA</span>
           </div>
         </div>
       </div>
