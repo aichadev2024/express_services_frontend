@@ -24,9 +24,11 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/admin/quartiers', label: 'Quartiers', icon: 'fa-location-dot' },
 ];
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const token = useStoredToken('admin_token');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -214,6 +216,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     setOtpRequired(false);
     showToast('Déconnexion réussie.');
   };
+
+  if (!mounted) {
+    return (
+      <div className="app-container">
+        <Header activeHref="/admin" />
+        <div className="login-container" style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ color: '#0d2149', fontSize: '15px', fontWeight: 600 }}>Chargement de l&apos;administration...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!token) {
     return (
