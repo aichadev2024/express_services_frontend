@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from 'react';
+import PhoneInput from '@/components/PhoneInput';
 import { apiFetch } from '@/lib/api';
 import { useToasts, ToastContainer } from '@/components/Toast';
 import { useStoredToken } from '@/lib/authToken';
@@ -122,12 +123,11 @@ export default function AdminPartenaires() {
 
             <div className="form-group full-width">
               <label>Téléphone</label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={partenaireTelephone}
-                onChange={(e) => setPartenaireTelephone(e.target.value)}
+                onChange={setPartenaireTelephone}
                 required
-                placeholder="Ex: +223 76000000"
+                placeholder="70 00 00 00"
               />
             </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from 'react';
+import PhoneInput from '@/components/PhoneInput';
 import { apiFetch } from '@/lib/api';
 import { useToasts, ToastContainer } from '@/components/Toast';
 import { useStoredToken } from '@/lib/authToken';
@@ -246,12 +247,11 @@ export default function AdminLivreurs() {
 
             <div className="form-group full-width">
               <label>Numéro de Téléphone</label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={driverTelephone}
-                onChange={(e) => setDriverTelephone(e.target.value)}
+                onChange={setDriverTelephone}
                 required
-                placeholder="Ex: +223 70 00 00 00"
+                placeholder="70 00 00 00"
               />
             </div>
 

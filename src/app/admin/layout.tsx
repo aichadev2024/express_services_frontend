@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode, type FormEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import PhoneInput from '@/components/PhoneInput';
 import { useToasts, ToastContainer } from '@/components/Toast';
 import { apiFetch } from '@/lib/api';
 import { useStoredToken, setStoredToken } from '@/lib/authToken';
@@ -471,16 +472,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
                     <div className="login-input-group" style={{ marginTop: '15px' }}>
                       <label>Téléphone</label>
-                      <div className="input-wrapper">
-                        <i className="fa-solid fa-phone"></i>
-                        <input
-                          type="tel"
-                          value={regTelephone}
-                          onChange={(e) => setRegTelephone(e.target.value)}
-                          required
-                          placeholder="Ex: +223 70 00 00 00"
-                        />
-                      </div>
+                      <PhoneInput
+                        value={regTelephone}
+                        onChange={setRegTelephone}
+                        required
+                        placeholder="70 00 00 00"
+                      />
                     </div>
 
                     <div className="login-input-group" style={{ marginTop: '15px' }}>

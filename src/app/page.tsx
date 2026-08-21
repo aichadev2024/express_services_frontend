@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, type ChangeEvent, type FormEvent 
 import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
 import Header from '@/components/Header';
+import PhoneInput from '@/components/PhoneInput';
 import { useToasts, ToastContainer } from '@/components/Toast';
 import { apiFetch } from '@/lib/api';
 import type { Produit, Quartier, Partenaire, Commande } from '@/lib/types';
@@ -402,12 +403,11 @@ export default function PublicLandingPage() {
               </div>
               <div className="form-group">
                 <label><i className="fa-solid fa-phone"></i> Téléphone</label>
-                <input
-                  type="tel"
+                <PhoneInput
                   value={recipientPhone}
-                  onChange={(e) => setRecipientPhone(e.target.value)}
+                  onChange={setRecipientPhone}
                   required
-                  placeholder="Ex: 76000000"
+                  placeholder="70 00 00 00"
                 />
               </div>
               <div className="form-group full-width">
