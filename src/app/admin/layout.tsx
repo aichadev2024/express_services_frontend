@@ -52,6 +52,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regNom, setRegNom] = useState('');
   const [regPrenom, setRegPrenom] = useState('');
+  const [regTelephone, setRegTelephone] = useState('');
   const [regError, setRegError] = useState('');
 
   // Active Tab state
@@ -112,7 +113,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           email: regEmail,
           password: regPassword,
           nom: regNom,
-          prenom: regPrenom
+          prenom: regPrenom,
+          telephone: regTelephone
         }
       });
       showToast('Compte administrateur créé avec succès ! Veuillez vous connecter.');
@@ -124,6 +126,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       setRegConfirmPassword('');
       setRegNom('');
       setRegPrenom('');
+      setRegTelephone('');
     } catch (err: any) {
       setRegError(err.message || "Une erreur est survenue lors de la création du compte.");
     }
@@ -462,6 +465,20 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                           onChange={(e) => setRegEmail(e.target.value)}
                           required
                           placeholder="Ex: admin@example.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="login-input-group" style={{ marginTop: '15px' }}>
+                      <label>Téléphone</label>
+                      <div className="input-wrapper">
+                        <i className="fa-solid fa-phone"></i>
+                        <input
+                          type="tel"
+                          value={regTelephone}
+                          onChange={(e) => setRegTelephone(e.target.value)}
+                          required
+                          placeholder="Ex: +223 70 00 00 00"
                         />
                       </div>
                     </div>

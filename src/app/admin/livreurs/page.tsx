@@ -19,6 +19,7 @@ export default function AdminLivreurs() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [driverNom, setDriverNom] = useState('');
   const [driverPrenom, setDriverPrenom] = useState('');
+  const [driverTelephone, setDriverTelephone] = useState('');
 
   const loadDrivers = async () => {
     try {
@@ -52,6 +53,7 @@ export default function AdminLivreurs() {
       password: driverPassword,
       nom: driverNom,
       prenom: driverPrenom,
+      telephone: driverTelephone,
     };
 
     try {
@@ -65,6 +67,7 @@ export default function AdminLivreurs() {
       setShowConfirmPassword(false);
       setDriverNom('');
       setDriverPrenom('');
+      setDriverTelephone('');
       loadDrivers();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Erreur de création de compte livreur.', 'error');
@@ -89,13 +92,14 @@ export default function AdminLivreurs() {
                   <th>Nom d'Utilisateur</th>
                   <th>Nom Complet</th>
                   <th>E-mail</th>
+                  <th>Téléphone</th>
                   <th>Date de Création</th>
                 </tr>
               </thead>
               <tbody>
                 {drivers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center' }}>Aucun livreur enregistré.</td>
+                    <td colSpan={6} style={{ textAlign: 'center' }}>Aucun livreur enregistré.</td>
                   </tr>
                 ) : (
                   drivers.map(d => {
@@ -108,6 +112,7 @@ export default function AdminLivreurs() {
                         <td><span className="text-muted">@{d.username}</span></td>
                         <td><strong>{d.prenom} {d.nom}</strong></td>
                         <td>{d.email || <span className="text-muted">—</span>}</td>
+                        <td>{d.telephone || <span className="text-muted">—</span>}</td>
                         <td>{formattedDate}</td>
                       </tr>
                     );
@@ -236,6 +241,17 @@ export default function AdminLivreurs() {
                 onChange={(e) => setDriverPrenom(e.target.value)}
                 required
                 placeholder="Ex: Amadou"
+              />
+            </div>
+
+            <div className="form-group full-width">
+              <label>Numéro de Téléphone</label>
+              <input
+                type="tel"
+                value={driverTelephone}
+                onChange={(e) => setDriverTelephone(e.target.value)}
+                required
+                placeholder="Ex: +223 70 00 00 00"
               />
             </div>
 
