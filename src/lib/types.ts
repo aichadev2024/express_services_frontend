@@ -111,3 +111,36 @@ export interface ApiErrorBody {
   message?: string;
   error?: string;
 }
+
+export interface LivreurDailyStat {
+  livreurId: number;
+  livreurUsername: string;
+  livreurNom: string | null;
+  livreurPrenom: string | null;
+  livreurTelephone: string | null;
+  nombreLivraisonsAssignees: number;
+  nombreLivraisonsLivrees: number;
+  totalFraisLivraison: number;
+  totalMontantMarchandises: number;
+  totalMontantGlobal: number;
+}
+
+export interface DailyHistoryStat {
+  date: string;
+  totalLivraisons: number;
+  totalCommandesLivrees: number;
+  totalFraisLivraison: number;
+  totalMontantMarchandises: number;
+  totalMontantGlobal: number;
+}
+
+export interface DailyDeliveryStats {
+  date: string;
+  totalLivraisonsDuJour: number;
+  nombreLivraisonsLivrees: number;
+  totalFraisLivraison: number;
+  totalMontantMarchandises: number;
+  totalMontantGlobal: number;
+  livreursStats: LivreurDailyStat[];
+  historique7Jours: DailyHistoryStat[];
+}

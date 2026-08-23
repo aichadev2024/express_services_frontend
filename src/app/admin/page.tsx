@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '@/lib/api';
-import type { DashboardStats } from '@/lib/types';
+import type { DashboardStats, DailyDeliveryStats, DailyHistoryStat, LivreurDailyStat } from '@/lib/types';
 import { useStoredToken } from '@/lib/authToken';
 
 interface Kpis {
@@ -34,6 +34,11 @@ export default function AdminDashboard() {
   });
   const [profile, setProfile] = useState<AdminProfile | null>(null);
 
+  // Daily statistics state
+  const [statsDate, setStatsDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dailyStats, setDailyStats] = useState<DailyDeliveryStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   const quote = useMemo(() => {
     const quotes = [
       "« La logistique n'est pas seulement le mouvement des marchandises ; c'est le fil invisible qui relie les personnes et concrétise les promesses. »",
@@ -45,6 +50,19 @@ export default function AdminDashboard() {
     const randomIndex = Math.floor(Math.random() * quotes.length);
     return quotes[randomIndex];
   }, []);
+
+  const loadDailyDeliveryStats = async (dateStr: string) => {
+    if (!token) return;
+    setStatsLoading(true);
+    try {
+      const res = await apiFetch<DailyDeliveryStats>(`/commandes/daily-stats?date=${dateStr}`, { token });
+      setDailyStats(res);
+    } catch (err) {
+      console.error('Error fetching daily delivery stats', err);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -73,6 +91,7 @@ export default function AdminDashboard() {
       }
     }
     loadInitialData();
+    loadDailyDeliveryStats(statsDate);
 
     const interval = setInterval(async () => {
       try {
@@ -93,6 +112,11 @@ export default function AdminDashboard() {
 
     return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadDailyDeliveryStats(statsDate);
+  }, [token, statsDate]);
 
   if (dataLoading) {
     return (
@@ -147,7 +171,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPIs Stats Grid */}
-      <div className="kpi-grid">
+      <div className="kpi-grid" style={{ marginBottom: '30px' }}>
         <div className="kpi-card glass-card gradient-1">
           <div className="kpi-icon"><i className="fa-solid fa-calendar-day"></i></div>
           <div className="kpi-info">
@@ -184,6 +208,127 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Daily Delivery Price Statistics Section */}
+      <div className="card glass-card" style={{ marginBottom: '30px', padding: '25px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <i className="fa-solid fa-chart-line" style={{ color: '#38bdf8' }}></i> Statistiques du Prix des Livraisons par Jour
+            </h2>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Analyse détaillée des frais de livraison et chiffre d'affaires quotidien</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Date d'analyse :</label>
+            <input
+              type="date"
+              value={statsDate}
+              onChange={(e) => setStatsDate(e.target.value)}
+              className="form-control"
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color, #334155)',
+                background: 'var(--bg-input, #0f172a)',
+                color: 'var(--text-color, #fff)'
+              }}
+            />
+          </div>
+        </div>
+
+        {statsLoading ? (
+          <div style={{ padding: '30px', textAlign: 'center' }}>
+            <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '24px', marginRight: '10px' }}></i>
+            Chargement des statistiques de livraison du {statsDate}...
+          </div>
+        ) : dailyStats ? (
+          <div>
+            {/* Daily delivery breakdown summary cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '25px' }}>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '18px', borderRadius: '14px' }}>
+                <span style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#38bdf8', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  Frais de Livraison Effectués
+                </span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#38bdf8' }}>
+                  {Number(dailyStats.totalFraisLivraison).toLocaleString('fr-FR')} FCFA
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Total des tarifs de quartier sur {dailyStats.nombreLivraisonsLivrees} livraisons réussies
+                </span>
+              </div>
+
+              <div style={{ background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '18px', borderRadius: '14px' }}>
+                <span style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#c084fc', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  Montant des Marchandises
+                </span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#c084fc' }}>
+                  {Number(dailyStats.totalMontantMarchandises).toLocaleString('fr-FR')} FCFA
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Valeur totale des produits livrés du jour
+                </span>
+              </div>
+
+              <div style={{ background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.2)', padding: '18px', borderRadius: '14px' }}>
+                <span style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#4ade80', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  Encaissement Global Du Jour
+                </span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#4ade80' }}>
+                  {Number(dailyStats.totalMontantGlobal).toLocaleString('fr-FR')} FCFA
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Cumul Frais Livraison + Marchandises
+                </span>
+              </div>
+            </div>
+
+            {/* 7-Day History Trend Table */}
+            <div style={{ marginTop: '20px' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <i className="fa-solid fa-clock-rotate-left"></i> Historique des 7 Derniers Jours
+              </h3>
+              <div className="table-responsive">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Commandes Totales</th>
+                      <th>Commandes Livrées</th>
+                      <th>Frais de Livraison (FCFA)</th>
+                      <th>Montant Marchandises (FCFA)</th>
+                      <th>Total Encaissé (FCFA)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dailyStats.historique7Jours.map((h: DailyHistoryStat) => (
+                      <tr key={h.date} style={h.date === statsDate ? { background: 'rgba(56, 189, 248, 0.08)' } : {}}>
+                        <td>
+                          <strong>{new Date(h.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</strong>
+                          {h.date === statsDate && <span className="badge badge-info" style={{ marginLeft: '8px', fontSize: '0.7rem' }}>Sélectionné</span>}
+                        </td>
+                        <td>{h.totalLivraisons}</td>
+                        <td>
+                          <span className="badge badge-success">{h.totalCommandesLivrees} livrées</span>
+                        </td>
+                        <td>
+                          <strong style={{ color: '#38bdf8' }}>{Number(h.totalFraisLivraison).toLocaleString('fr-FR')} FCFA</strong>
+                        </td>
+                        <td>{Number(h.totalMontantMarchandises).toLocaleString('fr-FR')} FCFA</td>
+                        <td>
+                          <strong style={{ color: '#4ade80' }}>{Number(h.totalMontantGlobal).toLocaleString('fr-FR')} FCFA</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '20px', textAlign: 'center' }}>Aucune donnée disponible pour cette date.</div>
+        )}
+      </div>
     </div>
   );
 }
+

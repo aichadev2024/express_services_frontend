@@ -13,10 +13,18 @@ export default function AdminCommandes() {
   const [orders, setOrders] = useState<Commande[]>([]);
   const [drivers, setDrivers] = useState<Livreur[]>([]);
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterDriver, setFilterDriver] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const { toasts, showToast } = useToasts();
 
   const loadOrders = async () => {
-    const path = filterStatus ? `/commandes?statut=${filterStatus}` : '/commandes';
+    const params = new URLSearchParams();
+    if (filterStatus) params.append('statut', filterStatus);
+    if (filterDriver) params.append('livreurId', filterDriver);
+    if (filterDate) params.append('date', filterDate);
+    const queryString = params.toString();
+    const path = queryString ? `/commandes?${queryString}` : '/commandes';
+
     try {
       const res = await apiFetch<Commande[]>(path, { token }).catch(() => []);
       setOrders(Array.isArray(res) ? res : []);
@@ -44,7 +52,7 @@ export default function AdminCommandes() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [token, filterStatus]);
+  }, [token, filterStatus, filterDriver, filterDate]);
 
   const handleAssignDriver = async (orderId: number, livreurIdVal: string) => {
     const livreurId = livreurIdVal ? parseInt(livreurIdVal) : null;
@@ -79,20 +87,60 @@ export default function AdminCommandes() {
   return (
     <div className="subtab-pane active">
       <div className="card glass-card table-card">
-        <div className="table-actions">
+        <div className="table-actions" style={{ flexWrap: 'wrap', gap: '15px' }}>
           <h3>Liste Générale des Commandes</h3>
-          <div className="filter-group">
-            <label><i className="fa-solid fa-filter"></i> Filtrer :</label>
-            <select value={filterStatus} onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value)}>
-              <option value="">Tous les statuts</option>
-              <option value="EN_ATTENTE">En attente</option>
-              <option value="EN_COURS">En cours (En livraison)</option>
-              <option value="LIVREE">Livrées</option>
-              <option value="ANNULEE">Annulées</option>
-              <option value="REJETEE">Rejetées</option>
-              <option value="REPORTEE">Reportées</option>
-              <option value="INJOIGNABLE">Injoignables</option>
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="filter-group">
+              <label><i className="fa-solid fa-calendar"></i> Date :</label>
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFilterDate(e.target.value)}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color, #334155)',
+                  background: 'var(--bg-input, #0f172a)',
+                  color: 'var(--text-color, #fff)'
+                }}
+              />
+            </div>
+
+            <div className="filter-group">
+              <label><i className="fa-solid fa-truck"></i> Livreur :</label>
+              <select value={filterDriver} onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterDriver(e.target.value)}>
+                <option value="">Tous les livreurs</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.prenom} {d.nom} (@{d.username})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label><i className="fa-solid fa-filter"></i> Statut :</label>
+              <select value={filterStatus} onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value)}>
+                <option value="">Tous les statuts</option>
+                <option value="EN_ATTENTE">En attente</option>
+                <option value="EN_COURS">En cours (En livraison)</option>
+                <option value="LIVREE">Livrées</option>
+                <option value="ANNULEE">Annulées</option>
+                <option value="REJETEE">Rejetées</option>
+                <option value="REPORTEE">Reportées</option>
+                <option value="INJOIGNABLE">Injoignables</option>
+              </select>
+            </div>
+
+            {(filterDate || filterDriver || filterStatus) && (
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => { setFilterDate(''); setFilterDriver(''); setFilterStatus(''); }}
+                style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+              >
+                <i className="fa-solid fa-rotate-left"></i> Réinitialiser
+              </button>
+            )}
           </div>
         </div>
 
