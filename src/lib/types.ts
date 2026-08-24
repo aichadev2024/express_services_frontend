@@ -123,6 +123,7 @@ export interface LivreurDailyStat {
   livreurTelephone: string | null;
   nombreLivraisonsAssignees: number;
   nombreLivraisonsLivrees: number;
+  totalLivraisonsGratuites?: number;
   totalFraisLivraison: number;
   totalMontantMarchandises: number;
   totalMontantGlobal: number;
@@ -132,6 +133,7 @@ export interface DailyHistoryStat {
   date: string;
   totalLivraisons: number;
   totalCommandesLivrees: number;
+  totalLivraisonsGratuites?: number;
   totalFraisLivraison: number;
   totalMontantMarchandises: number;
   totalMontantGlobal: number;
@@ -141,6 +143,7 @@ export interface DailyDeliveryStats {
   date: string;
   totalLivraisonsDuJour: number;
   nombreLivraisonsLivrees: number;
+  totalLivraisonsGratuites?: number;
   totalFraisLivraison: number;
   totalMontantMarchandises: number;
   totalMontantGlobal: number;

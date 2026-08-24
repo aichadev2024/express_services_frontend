@@ -253,7 +253,19 @@ export default function AdminDashboard() {
                   {Number(dailyStats.totalFraisLivraison).toLocaleString('fr-FR')} FCFA
                 </div>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Total des tarifs de quartier sur {dailyStats.nombreLivraisonsLivrees} livraisons réussies
+                  Total des frais de livraison perçus (exclut les livraisons gratuites)
+                </span>
+              </div>
+
+              <div style={{ background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.2)', padding: '18px', borderRadius: '14px' }}>
+                <span style={{ fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#eab308', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  Livraisons Gratuites (Offertes)
+                </span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#eab308' }}>
+                  {dailyStats.totalLivraisonsGratuites ?? 0}
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Comptabilisées à 0 FCFA dans le total des frais de livraison
                 </span>
               </div>
 
@@ -277,7 +289,7 @@ export default function AdminDashboard() {
                   {Number(dailyStats.totalMontantGlobal).toLocaleString('fr-FR')} FCFA
                 </div>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Cumul Frais Livraison + Marchandises
+                  Cumul Frais Livraison (Payantes) + Marchandises
                 </span>
               </div>
             </div>
