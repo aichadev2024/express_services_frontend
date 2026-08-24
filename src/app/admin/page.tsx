@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '@/lib/api';
-import type { DashboardStats, DailyDeliveryStats, DailyHistoryStat, LivreurDailyStat } from '@/lib/types';
+import type { DashboardStats, DailyDeliveryStats, DailyHistoryStat, LivreurDailyStat, MonthlyDeliveryStats, PartenaireMonthlyStat, LivreurMonthlyStat } from '@/lib/types';
 import { useStoredToken } from '@/lib/authToken';
 
 interface Kpis {
@@ -22,6 +22,13 @@ interface AdminProfile {
   role: string;
 }
 
+const MONTH_NAMES = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+];
+
+const DONUT_COLORS = ['#38bdf8', '#c084fc', '#4ade80', '#facc15', '#fb923c', '#f43f5e', '#818cf8', '#a3e635'];
+
 export default function AdminDashboard() {
   const token = useStoredToken('admin_token');
   const [dataLoading, setDataLoading] = useState(true);
@@ -38,6 +45,13 @@ export default function AdminDashboard() {
   const [statsDate, setStatsDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [dailyStats, setDailyStats] = useState<DailyDeliveryStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Monthly statistics state
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [monthlyStats, setMonthlyStats] = useState<MonthlyDeliveryStats | null>(null);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
 
   const quote = useMemo(() => {
     const quotes = [
@@ -61,6 +75,19 @@ export default function AdminDashboard() {
       console.error('Error fetching daily delivery stats', err);
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const loadMonthlyStats = async (yr: number, mth: number) => {
+    if (!token) return;
+    setMonthlyLoading(true);
+    try {
+      const res = await apiFetch<MonthlyDeliveryStats>(`/commandes/monthly-stats?year=${yr}&month=${mth}`, { token });
+      setMonthlyStats(res);
+    } catch (err) {
+      console.error('Error fetching monthly stats', err);
+    } finally {
+      setMonthlyLoading(false);
     }
   };
 
@@ -92,6 +119,7 @@ export default function AdminDashboard() {
     }
     loadInitialData();
     loadDailyDeliveryStats(statsDate);
+    loadMonthlyStats(selectedYear, selectedMonth);
 
     const interval = setInterval(async () => {
       try {
@@ -117,6 +145,11 @@ export default function AdminDashboard() {
     if (!token) return;
     loadDailyDeliveryStats(statsDate);
   }, [token, statsDate]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadMonthlyStats(selectedYear, selectedMonth);
+  }, [token, selectedYear, selectedMonth]);
 
   if (dataLoading) {
     return (
@@ -338,6 +371,289 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <div style={{ padding: '20px', textAlign: 'center' }}>Aucune donnée disponible pour cette date.</div>
+        )}
+      </div>
+
+      {/* SECTION 2: Monthly Financial & Driver Performance Statistics */}
+      <div className="card glass-card table-card" style={{ marginTop: '30px' }}>
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="card-icon" style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc' }}>
+              <i className="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+              <h2>Statistiques Mensuelles & Répartition des Gains</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                Vue d'ensemble du chiffre d'affaires, partages partenaires et classement des livreurs
+              </p>
+            </div>
+          </div>
+
+          {/* Month & Year Selectors */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-main)',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              {MONTH_NAMES.map((mName, idx) => (
+                <option key={idx + 1} value={idx + 1}>{mName}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-main)',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              {[2025, 2026, 2027].map((yr) => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {monthlyLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '24px', marginRight: '10px', color: '#c084fc' }}></i>
+            Chargement des statistiques mensuelles de {MONTH_NAMES[selectedMonth - 1]} {selectedYear}...
+          </div>
+        ) : monthlyStats ? (
+          <div style={{ marginTop: '10px' }}>
+            {/* Top KPI Cards for Monthly Financial Performance */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+              <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '20px', borderRadius: '16px' }}>
+                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#38bdf8', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  <i className="fa-solid fa-building-columns" style={{ marginRight: '6px' }}></i> Gains Plateforme (Admin)
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8' }}>
+                  {Number(monthlyStats.gainsPlateforme).toLocaleString('fr-FR')} FCFA
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Revenu total généré par les frais de livraison payantes ce mois
+                </span>
+              </div>
+
+              <div style={{ background: 'rgba(192, 132, 252, 0.08)', border: '1px solid rgba(192, 132, 252, 0.25)', padding: '20px', borderRadius: '16px' }}>
+                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#c084fc', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  <i className="fa-solid fa-store" style={{ marginRight: '6px' }}></i> Gains Marchandises (Partenaires)
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#c084fc' }}>
+                  {Number(monthlyStats.gainsMarchandises).toLocaleString('fr-FR')} FCFA
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Total des ventes de produits enregistrées sur le mois
+                </span>
+              </div>
+
+              <div style={{ background: 'rgba(74, 222, 128, 0.08)', border: '1px solid rgba(74, 222, 128, 0.25)', padding: '20px', borderRadius: '16px' }}>
+                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#4ade80', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  <i className="fa-solid fa-wallet" style={{ marginRight: '6px' }}></i> Chiffre d'Affaires Global
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#4ade80' }}>
+                  {Number(monthlyStats.gainsGlobal).toLocaleString('fr-FR')} FCFA
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Frais de livraison + Ventes marchandises cumulés
+                </span>
+              </div>
+
+              <div style={{ background: 'rgba(250, 204, 21, 0.08)', border: '1px solid rgba(250, 204, 21, 0.25)', padding: '20px', borderRadius: '16px' }}>
+                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#facc15', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  <i className="fa-solid fa-truck-ramp-box" style={{ marginRight: '6px' }}></i> Livraisons Effectuées
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#facc15' }}>
+                  {monthlyStats.totalCommandesLivrees} / {monthlyStats.totalLivraisons}
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  dont {monthlyStats.totalLivraisonsGratuites} livraisons gratuites offertes
+                </span>
+              </div>
+            </div>
+
+            {/* Split layout: Left Donut Chart, Right Top Drivers Podium */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '25px' }}>
+
+              {/* LEFT: Donut / Camembert Chart for Gains Par Partenaire */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '22px' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fa-solid fa-chart-donut" style={{ color: '#c084fc' }}></i> Répartition des Ventes par Partenaire
+                </h3>
+
+                {monthlyStats.partenairesStats.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                    Aucune livraison partenaire enregistrée ce mois-ci.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                    {/* SVG Donut Chart */}
+                    <div style={{ position: 'relative', width: '200px', height: '200px' }}>
+                      <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="100" cy="100" r="70" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="24" />
+                        {(() => {
+                          let cumulativeOffset = 0;
+                          const r = 70;
+                          const circ = 2 * Math.PI * r;
+                          return monthlyStats.partenairesStats.map((p, i) => {
+                            const strokeDash = (p.pourcentageDuTotal / 100) * circ;
+                            const offset = cumulativeOffset;
+                            cumulativeOffset += strokeDash;
+                            const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                            return (
+                              <circle
+                                key={p.partenaireId ?? i}
+                                cx="100"
+                                cy="100"
+                                r={r}
+                                fill="transparent"
+                                stroke={color}
+                                strokeWidth="24"
+                                strokeDasharray={`${strokeDash} ${circ}`}
+                                strokeDashoffset={-offset}
+                                style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                              />
+                            );
+                          });
+                        })()}
+                      </svg>
+                      {/* Center Info Text */}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'none'
+                      }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Ventes Marchandises</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: '#c084fc' }}>
+                          {Number(monthlyStats.gainsMarchandises).toLocaleString('fr-FR')} F
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Partners Breakdown List / Legend */}
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                      {monthlyStats.partenairesStats.map((p, i) => {
+                        const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                        return (
+                          <div key={p.partenaireId ?? i} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 14px',
+                            background: 'rgba(255,255,255,0.03)',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255,255,255,0.06)'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: color, display: 'inline-block' }}></span>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{p.partenaireNom}</span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{
+                                background: `${color}20`,
+                                color: color,
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: '20px'
+                              }}>
+                                {p.pourcentageDuTotal}%
+                              </span>
+                              <strong style={{ fontSize: '0.9rem' }}>
+                                {Number(p.gainsPartenaire).toLocaleString('fr-FR')} FCFA
+                              </strong>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT: Top Livreurs le Plus Actifs du Mois */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '22px' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fa-solid fa-trophy" style={{ color: '#facc15' }}></i> Livreurs les Plus Actifs du Mois
+                </h3>
+
+                {monthlyStats.topLivreurs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                    Aucune livraison effectuée par un livreur ce mois-ci.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {monthlyStats.topLivreurs.map((l: LivreurMonthlyStat) => {
+                      const medal = l.rang === 1 ? '🥇' : l.rang === 2 ? '🥈' : l.rang === 3 ? '🥉' : `#${l.rang}`;
+                      const badgeBg = l.rang === 1 ? 'rgba(250, 204, 21, 0.15)' : l.rang === 2 ? 'rgba(148, 163, 184, 0.15)' : l.rang === 3 ? 'rgba(251, 146, 60, 0.15)' : 'rgba(255,255,255,0.04)';
+                      const badgeBorder = l.rang === 1 ? 'rgba(250, 204, 21, 0.3)' : l.rang === 2 ? 'rgba(148, 163, 184, 0.3)' : l.rang === 3 ? 'rgba(251, 146, 60, 0.3)' : 'rgba(255,255,255,0.08)';
+
+                      return (
+                        <div key={l.livreurId} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '14px 16px',
+                          background: badgeBg,
+                          border: `1px solid ${badgeBorder}`,
+                          borderRadius: '14px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                            <span style={{ fontSize: '1.4rem', fontWeight: 800 }}>{medal}</span>
+                            <div>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                {l.livreurPrenom || l.livreurNom ? `${l.livreurPrenom || ''} ${l.livreurNom || ''}`.trim() : l.livreurUsername}
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                {l.livreurTelephone || '@' + l.livreurUsername}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#4ade80' }}>
+                              {l.nombreLivraisons} livraisons
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                              Frais: <strong style={{ color: '#38bdf8' }}>{Number(l.totalFraisEncaisse).toLocaleString('fr-FR')} FCFA</strong>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '20px', textAlign: 'center' }}>Aucune donnée mensuelle disponible.</div>
         )}
       </div>
     </div>

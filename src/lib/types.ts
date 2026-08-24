@@ -150,3 +150,36 @@ export interface DailyDeliveryStats {
   livreursStats: LivreurDailyStat[];
   historique7Jours: DailyHistoryStat[];
 }
+
+export interface PartenaireMonthlyStat {
+  partenaireId: number | null;
+  partenaireNom: string;
+  nombreCommandes: number;
+  gainsPartenaire: number;
+  pourcentageDuTotal: number;
+}
+
+export interface LivreurMonthlyStat {
+  livreurId: number;
+  livreurUsername: string;
+  livreurNom: string | null;
+  livreurPrenom: string | null;
+  livreurTelephone: string | null;
+  nombreLivraisons: number;
+  totalFraisEncaisse: number;
+  totalMarchandisesLivrees: number;
+  rang: number;
+}
+
+export interface MonthlyDeliveryStats {
+  year: number;
+  month: number;
+  totalLivraisons: number;
+  totalCommandesLivrees: number;
+  totalLivraisonsGratuites: number;
+  gainsPlateforme: number;
+  gainsMarchandises: number;
+  gainsGlobal: number;
+  partenairesStats: PartenaireMonthlyStat[];
+  topLivreurs: LivreurMonthlyStat[];
+}
