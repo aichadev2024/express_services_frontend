@@ -76,6 +76,9 @@ export interface Commande {
   partenaireNom: string | null;
   descriptionArticle: string | null;
   motifAnnulation?: string | null;
+  livraisonGratuite?: boolean;
+  tarifLivraisonEffective?: number;
+  montantAEncaisser?: number;
 }
 
 export interface DashboardStats {
