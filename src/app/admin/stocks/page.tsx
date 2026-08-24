@@ -123,9 +123,9 @@ export default function AdminStocks() {
                 <tr>
                   <th>Produit</th>
                   <th>Partenaire</th>
-                  <th>Disponible</th>
-                  <th>En livraison</th>
-                  <th>Retournés</th>
+                  <th>Stock Dépôt</th>
+                  <th>Sorties Totales (Livrées & En cours)</th>
+                  <th>Retournés (Annulés / Rejetés)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -142,7 +142,7 @@ export default function AdminStocks() {
                       <tr key={s.id}>
                         <td><strong>{s.nom || 'Sans nom'}</strong></td>
                         <td>{fullProduct?.partenaireNom || <span className="text-muted">—</span>}</td>
-                        <td><span className={`badge ${stockDispo > 5 ? 'livree' : 'annulee'}`}>{stockDispo} en stock</span></td>
+                        <td><span className={`badge ${stockDispo > 5 ? 'livree' : 'annulee'}`}>{stockDispo} en dépôt</span></td>
                         <td><span className="badge en_cours">{s.sortisPourLivraison ?? 0} sortis</span></td>
                         <td><span className="badge reportee">{s.retournes ?? 0} retournés</span></td>
                         <td>
