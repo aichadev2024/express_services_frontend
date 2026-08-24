@@ -186,8 +186,16 @@ export default function AdminCommandes() {
                         <span className="text-muted">{order.adressePrecise}</span>
                       </td>
                       <td>
-                        <strong>{(order.montantTotal ?? 0).toLocaleString()} FCFA</strong><br />
-                        <span className="text-muted" style={{ fontSize: '11px' }}>(Livraison: {(order.tarifLivraison ?? 0).toLocaleString()})</span>
+                        <strong style={{ color: '#16A34A', fontSize: '0.95rem' }}>
+                          {(order.montantAEncaisser ?? order.montantTotal ?? 0).toLocaleString()} FCFA
+                        </strong><br />
+                        <span className="text-muted" style={{ fontSize: '11px' }}>
+                          {order.livraisonGratuite ? (
+                            <span style={{ color: '#16A34A', fontWeight: 'bold' }}>Livraison offerte (0 FCFA)</span>
+                          ) : (
+                            `Livraison: ${(order.tarifLivraisonEffective ?? order.tarifLivraison ?? 0).toLocaleString()} FCFA`
+                          )}
+                        </span>
                       </td>
                       <td>{formattedDate}</td>
                       <td>
