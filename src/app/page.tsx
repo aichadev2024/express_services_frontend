@@ -39,6 +39,23 @@ export default function PublicLandingPage() {
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [descriptionArticle, setDescriptionArticle] = useState<string>('');
+  
+  // Custom Detailed Form State
+  const [userProfileType, setUserProfileType] = useState<'e-commercant' | 'particulier'>('e-commercant');
+  const [referenceCommande] = useState<string>(() => `EXP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [produitArticle, setProduitArticle] = useState<string>('');
+  const [quantiteCmd, setQuantiteCmd] = useState<number>(1);
+  const [montantCmd, setMontantCmd] = useState<string>('');
+  const [modePaiement, setModePaiement] = useState<'livraison' | 'deja_paye'>('livraison');
+  const [isFragile, setIsFragile] = useState<boolean>(false);
+  const [expediteurNom, setExpediteurNom] = useState<string>('');
+  const [expediteurTel, setExpediteurTel] = useState<string>('');
+  const [expediteurAdresse, setExpediteurAdresse] = useState<string>('');
+  const [expediteurQuartier, setExpediteurQuartier] = useState<string>('');
+  const [instructionsLivreur, setInstructionsLivreur] = useState<string>('');
+  const [valeurColis, setValeurColis] = useState<string>('');
+  const [particulierMode, setParticulierMode] = useState<'envoi' | 'recuperation'>('envoi');
+
   const [orderLines, setOrderLines] = useState<Array<{ rowId: number; produitId: string; quantite: number }>>([
     { rowId: Date.now(), produitId: '', quantite: 1 }
   ]);
@@ -180,18 +197,32 @@ export default function PublicLandingPage() {
     }
 
     let cleanLines = null;
-    if (selectedPartnerId) {
-      cleanLines = orderLines
-        .filter(l => l.produitId !== '')
-        .map(l => ({ produitId: parseInt(l.produitId), quantite: l.quantite }));
+    let computedDescription = '';
 
-      if (cleanLines.length === 0) {
-        showToast('Veuillez ajouter au moins un produit du partenaire.', 'error');
-        return;
-      }
-    } else if (!descriptionArticle.trim()) {
-      showToast("Veuillez renseigner une description de l'article à livrer.", 'error');
-      return;
+    if (userProfileType === 'e-commercant') {
+      const qSelected = quartiers.find(q => q.id === parseInt(selectedQuartierId));
+      const qTarif = qSelected ? qSelected.tarifLivraison : 0;
+      const mCmd = parseFloat(montantCmd) || 0;
+      const totalEncaisser = modePaiement === 'livraison' ? (mCmd + qTarif) : qTarif;
+
+      computedDescription = 
+        `📌 RÉFÉRENCE: ${referenceCommande}\n` +
+        `📦 PRODUIT: ${produitArticle || 'Non spécifié'} (Qté: ${quantiteCmd})\n` +
+        `💰 MONTANT COMMANDE: ${mCmd.toLocaleString()} FCFA\n` +
+        `💳 MODE PAIEMENT: ${modePaiement === 'livraison' ? '💵 Paiement à la livraison' : '✅ Déjà payé'}\n` +
+        `⚠️ FRAGILE: ${isFragile ? 'OUI 🍷' : 'NON 📦'}\n` +
+        `📍 RAMASSAGE BOUTIQUE: ${expediteurNom} (Tél: ${expediteurTel}) - ${expediteurAdresse}\n` +
+        `📝 INSTRUCTIONS LIVREUR: ${instructionsLivreur || 'Aucune'}\n` +
+        `💵 TOTAL À ENCAISSER: ${totalEncaisser.toLocaleString()} FCFA`;
+    } else {
+      const isEnvoi = particulierMode === 'envoi';
+      const valColis = parseFloat(valeurColis) || 0;
+      computedDescription = 
+        `[MODE: ${isEnvoi ? 'ENVOI DE COLIS' : 'RÉCUPÉRATION DE COLIS'}]\n` +
+        `📦 CONTENU: ${descriptionArticle}\n` +
+        `💰 VALEUR ESTIMÉE: ${valColis.toLocaleString()} FCFA\n` +
+        `📍 POINT DE RÉCUPÉRATION: ${expediteurNom} (Tél: ${expediteurTel}) - Quartier: ${expediteurQuartier} - Adresse: ${expediteurAdresse}\n` +
+        `📝 INSTRUCTIONS PARTICULIÈRES: ${instructionsLivreur || 'Aucune'}`;
     }
 
     const payload = {
@@ -204,7 +235,7 @@ export default function PublicLandingPage() {
       longitude: longitude ? parseFloat(longitude) : null,
       lignesProduits: cleanLines,
       partenaireId: selectedPartnerId ? parseInt(selectedPartnerId) : null,
-      descriptionArticle: selectedPartnerId ? null : descriptionArticle
+      descriptionArticle: computedDescription
     };
 
     try {
@@ -213,7 +244,7 @@ export default function PublicLandingPage() {
         body: payload
       });
 
-      showToast(`Commande #${data.id} soumise avec succès !`);
+      showToast(`Commande #${data.id} créée avec succès !`);
 
       // Reset state
       setSelectedPartnerId('');
@@ -226,9 +257,17 @@ export default function PublicLandingPage() {
       setLatitude('');
       setLongitude('');
       setDescriptionArticle('');
+      setProduitArticle('');
+      setQuantiteCmd(1);
+      setMontantCmd('');
+      setExpediteurNom('');
+      setExpediteurTel('');
+      setExpediteurAdresse('');
+      setExpediteurQuartier('');
+      setInstructionsLivreur('');
+      setValeurColis('');
       setOrderLines([{ rowId: Date.now(), produitId: '', quantite: 1 }]);
 
-      const L = require('leaflet') as any;
       if (markerRef.current && mapRef.current) {
         mapRef.current.removeLayer(markerRef.current);
         markerRef.current = null;
@@ -286,13 +325,13 @@ export default function PublicLandingPage() {
         <div className="hero-grid">
           <div className="hero-content">
             <span className="hero-badge">Express Services Mali</span>
-            <h1>La logistique express de <span>confiance</span> au Mali</h1>
+            <h1>La logistique des <span>E-commerçants</span> à Bamako</h1>
             <p>
-              Découvrez la nouvelle génération de livraison urbaine à Bamako. Nous connectons particuliers et e-commerces avec nos livreurs professionnels pour un transport fiable, sécurisé et rapide.
+              Confiez-nous vos livraisons et concentrez-vous sur vos ventes. EXPRESS SERVICES prend en charge vos commandes, vos colis et leur livraison jusqu’au client.
             </p>
             <div className="hero-cta">
               <a href="#commande-section" className="btn btn-primary">
-                <i className="fa-solid fa-paper-plane"></i> Envoyer un Colis
+                <i className="fa-solid fa-paper-plane"></i> Demander une Livraison
               </a>
               <Link href="/admin" className="btn btn-outline">
                 <i className="fa-solid fa-user-shield"></i> Administration
@@ -300,33 +339,37 @@ export default function PublicLandingPage() {
             </div>
           </div>
 
-          <div className="hero-visual" style={{ display: 'flex', flexDirection: 'column', gap: '20px', background: 'rgba(255, 255, 255, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div className="feature-icon-wrapper" style={{ width: '50px', height: '50px', fontSize: '20px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
-                <i className="fa-solid fa-bolt"></i>
+          <div className="hero-visual" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', background: 'rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="feature-icon-wrapper" style={{ width: '40px', height: '40px', fontSize: '18px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
+                <i className="fa-solid fa-boxes-stacked"></i>
               </div>
-              <div style={{ textAlign: 'left' }}>
-                <h4 style={{ margin: 0, fontWeight: 700 }}>Rapidité</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Livraison express garantie à Bamako.</p>
-              </div>
+              <h4 style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>Gestion des commandes</h4>
+              <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Centralisez vos livraisons</p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div className="feature-icon-wrapper" style={{ width: '50px', height: '50px', fontSize: '20px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
-                <i className="fa-solid fa-shield-halved"></i>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="feature-icon-wrapper" style={{ width: '40px', height: '40px', fontSize: '18px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
+                <i className="fa-solid fa-truck-fast"></i>
               </div>
-              <div style={{ textAlign: 'left' }}>
-                <h4 style={{ margin: 0, fontWeight: 700 }}>Sécurité</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Suivi pas à pas et colis sécurisés.</p>
-              </div>
+              <h4 style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>Livraison</h4>
+              <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Vos commandes livrées à vos clients</p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div className="feature-icon-wrapper" style={{ width: '50px', height: '50px', fontSize: '20px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
-                <i className="fa-solid fa-headset"></i>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="feature-icon-wrapper" style={{ width: '40px', height: '40px', fontSize: '18px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
+                <i className="fa-solid fa-money-bill-wave"></i>
               </div>
-              <div style={{ textAlign: 'left' }}>
-                <h4 style={{ margin: 0, fontWeight: 700 }}>Assistance</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Support client disponible 6j/7.</p>
+              <h4 style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>Encaissement</h4>
+              <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Suivez les paiements à la livraison</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="feature-icon-wrapper" style={{ width: '40px', height: '40px', fontSize: '18px', background: 'rgba(255, 30, 39, 0.1)', color: 'var(--color-secondary)' }}>
+                <i className="fa-solid fa-chart-pie"></i>
               </div>
+              <h4 style={{ margin: 0, fontWeight: 700, fontSize: '14px' }}>📊 Suivi</h4>
+              <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Pilotez votre activité en temps réel</p>
             </div>
           </div>
         </div>
@@ -369,168 +412,358 @@ export default function PublicLandingPage() {
           <div className="portal-left-column card glass-card">
             <div className="card-header">
               <div className="card-icon"><i className="fa-solid fa-paper-plane"></i></div>
-              <h2>Formulaire de Livraison</h2>
+              <h2>Que souhaitez-vous faire ?</h2>
             </div>
-            <p className="card-subtitle">
-              Saisissez les coordonnées du destinataire et le quartier de Bamako pour soumettre une course.
-            </p>
+
+            {/* Profile Selection Header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div
+                onClick={() => setUserProfileType('e-commercant')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: `2px solid ${userProfileType === 'e-commercant' ? 'var(--color-primary)' : '#e2e8f0'}`,
+                  background: userProfileType === 'e-commercant' ? 'rgba(13, 33, 73, 0.04)' : '#fff',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-navy)', marginBottom: '4px' }}>
+                  <i className="fa-solid fa-store" style={{ color: 'var(--color-secondary)', marginRight: '6px' }}></i>
+                  Je suis e-commerçant
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  Je veux faire livrer une commande à mon client.
+                </div>
+              </div>
+
+              <div
+                onClick={() => setUserProfileType('particulier')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: `2px solid ${userProfileType === 'particulier' ? 'var(--color-primary)' : '#e2e8f0'}`,
+                  background: userProfileType === 'particulier' ? 'rgba(13, 33, 73, 0.04)' : '#fff',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-navy)', marginBottom: '4px' }}>
+                  <i className="fa-solid fa-user" style={{ color: 'var(--color-secondary)', marginRight: '6px' }}></i>
+                  Je suis un particulier
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  Je veux envoyer ou faire récupérer un colis.
+                </div>
+              </div>
+            </div>
+
+            {/* Type de demande Selector */}
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 700, fontSize: '13px', color: '#475569', display: 'block', marginBottom: '8px' }}>
+                Type de demande
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setUserProfileType('e-commercant')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: userProfileType === 'e-commercant' ? 'var(--color-secondary)' : 'transparent',
+                    color: userProfileType === 'e-commercant' ? '#fff' : '#64748b',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  <div>1- Nouvelle commande</div>
+                  <div style={{ fontSize: '10px', opacity: 0.8, fontWeight: 400 }}>Pour les e-commerçants</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setUserProfileType('particulier')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: userProfileType === 'particulier' ? 'var(--color-secondary)' : 'transparent',
+                    color: userProfileType === 'particulier' ? '#fff' : '#64748b',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  <div>2- Envoyer / Récupérer</div>
+                  <div style={{ fontSize: '10px', opacity: 0.8, fontWeight: 400 }}>Pour les particuliers</div>
+                </button>
+              </div>
+            </div>
 
             <form onSubmit={handleOrderSubmit} className="form-grid">
-              {/* Partner selection */}
-              <div className="form-group full-width">
-                <label><i className="fa-solid fa-handshake"></i> Commande émise par un Partenaire E-commerce ?</label>
-                <select value={selectedPartnerId} onChange={(e) => {
-                  setSelectedPartnerId(e.target.value);
-                  setOrderLines([{ rowId: Date.now(), produitId: '', quantite: 1 }]);
-                }}>
-                  <option value="">Non, expédition particulière (Particulier)</option>
-                  {partenaires.map(p => (
-                    <option key={p.id} value={p.id}>{p.nom} - Boutique</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Client Info */}
-              <div className="form-group">
-                <label><i className="fa-solid fa-user"></i> Destinataire</label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  required
-                  placeholder="Nom complet"
-                />
-              </div>
-              <div className="form-group">
-                <label><i className="fa-solid fa-phone"></i> Téléphone</label>
-                <PhoneInput
-                  value={recipientPhone}
-                  onChange={setRecipientPhone}
-                  required
-                  placeholder="70 00 00 00"
-                />
-              </div>
-              <div className="form-group full-width">
-                <label><i className="fa-solid fa-envelope"></i> E-mail du Destinataire (Optionnel)</label>
-                <input
-                  type="email"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  placeholder="destinataire@example.com"
-                />
-              </div>
-
-              {/* Conditional Particular vs Partner fields */}
-              {!selectedPartnerId ? (
-                <div className="form-group full-width">
-                  <label><i className="fa-solid fa-box-open"></i> Description de l'article à livrer</label>
-                  <textarea
-                    value={descriptionArticle}
-                    onChange={(e) => setDescriptionArticle(e.target.value)}
-                    placeholder="Ex: Un sachet contenant des vêtements, un pli de documents..."
-                    rows={3}
-                  />
-                </div>
-              ) : (
-                <div className="form-group full-width products-section">
-                  <label><i className="fa-solid fa-warehouse"></i> Articles Commandés dans votre Boutique</label>
-                  {orderLines.map((line, idx) => (
-                    <div key={line.rowId} className="product-row">
-                      <select
-                        value={line.produitId}
-                        onChange={(e) => updateProductRow(line.rowId, 'produitId', e.target.value)}
-                        required
-                      >
-                        <option value="">Sélectionner un produit...</option>
-                        {filteredProducts.map(p => {
-                          const currentStock = p.quantiteStock ?? p.stock;
-                          return (
-                            <option key={p.id} value={p.id} disabled={currentStock <= 0}>
-                              {p.nom} ({p.prix.toLocaleString()} FCFA) - {currentStock > 0 ? `Stock: ${currentStock}` : 'Rupture'}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        value={line.quantite}
-                        onChange={(e) => updateProductRow(line.rowId, 'quantite', parseInt(e.target.value) || 1)}
-                        required
-                      />
+              {/* E-COMMERÇANT FORM */}
+              {userProfileType === 'e-commercant' ? (
+                <>
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}><i className="fa-solid fa-file-invoice"></i> Informations sur la commande</label>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-barcode"></i> Référence commande (auto)</label>
+                    <input type="text" value={referenceCommande} readOnly style={{ background: '#f1f5f9', fontWeight: 'bold' }} />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-box"></i> Produit / article</label>
+                    <input type="text" value={produitArticle} onChange={(e) => setProduitArticle(e.target.value)} required placeholder="Ex: Robe Wax, Chaussures" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-arrow-down-1-9"></i> Quantité</label>
+                    <input type="number" min="1" value={quantiteCmd} onChange={(e) => setQuantiteCmd(parseInt(e.target.value) || 1)} required />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-money-bill-wave"></i> Montant commande (FCFA)</label>
+                    <input type="number" value={montantCmd} onChange={(e) => setMontantCmd(e.target.value)} required placeholder="Ex: 20000" />
+                  </div>
+                  <div className="form-group full-width">
+                    <label><i className="fa-solid fa-credit-card"></i> Mode de paiement</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                       <button
                         type="button"
-                        className="btn-remove-row"
-                        onClick={() => removeProductRow(line.rowId)}
+                        onClick={() => setModePaiement('livraison')}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: `2px solid ${modePaiement === 'livraison' ? 'var(--color-primary)' : '#cbd5e1'}`,
+                          background: modePaiement === 'livraison' ? 'rgba(13,33,73,0.08)' : '#fff',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
                       >
-                        <i className="fa-solid fa-trash"></i>
+                        💵 Paiement à la livraison
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModePaiement('deja_paye')}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: `2px solid ${modePaiement === 'deja_paye' ? '#10b981' : '#cbd5e1'}`,
+                          background: modePaiement === 'deja_paye' ? 'rgba(16,185,129,0.08)' : '#fff',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        ✅ Déjà payé
                       </button>
                     </div>
-                  ))}
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={addProductRow} style={{ marginTop: '10px' }}>
-                    <i className="fa-solid fa-plus"></i> Ajouter un article
-                  </button>
-                </div>
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}><i className="fa-solid fa-store"></i> 📍 Récupération du colis</label>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-user"></i> Nom commerçant / boutique</label>
+                    <input type="text" value={expediteurNom} onChange={(e) => setExpediteurNom(e.target.value)} required placeholder="Ex: Mali Fashion" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-phone"></i> Téléphone commerçant</label>
+                    <PhoneInput value={expediteurTel} onChange={setExpediteurTel} required placeholder="70 00 00 00" />
+                  </div>
+                  <div className="form-group full-width">
+                    <label><i className="fa-solid fa-location-dot"></i> Adresse de récupération</label>
+                    <input type="text" value={expediteurAdresse} onChange={(e) => setExpediteurAdresse(e.target.value)} required placeholder="Ex: Grand Marché, Allée 3, Boutique 12" />
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}><i className="fa-solid fa-bullseye"></i> 🎯 Livraison au client</label>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-user"></i> Nom du client</label>
+                    <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} required placeholder="Nom du client" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-phone"></i> Téléphone client</label>
+                    <PhoneInput value={recipientPhone} onChange={setRecipientPhone} required placeholder="70 00 00 00" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-map-location-dot"></i> Quartier du client</label>
+                    <select value={selectedQuartierId} onChange={handleQuartierChange} required>
+                      <option value="">Sélectionner le quartier...</option>
+                      {quartiers.map(q => (
+                        <option key={q.id} value={q.id}>{q.nom} ({q.tarifLivraison.toLocaleString()} FCFA)</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-map-pin"></i> Adresse précise client</label>
+                    <input type="text" value={addressPrecise} onChange={(e) => setAddressPrecise(e.target.value)} required placeholder="Rue, porte, repère..." />
+                  </div>
+                  <div className="form-group full-width">
+                    <label><i className="fa-solid fa-comment-dots"></i> Instruction pour le livreur (facultatif)</label>
+                    <input type="text" value={instructionsLivreur} onChange={(e) => setInstructionsLivreur(e.target.value)} placeholder="Ex: Appeler avant de venir" />
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}><i className="fa-solid fa-circle-info"></i> 📦 Informations complémentaires</label>
+                  </div>
+                  <div className="form-group full-width">
+                    <label>Description du colis</label>
+                    <textarea value={descriptionArticle} onChange={(e) => setDescriptionArticle(e.target.value)} rows={2} placeholder="Précisions sur l'emballage..." />
+                  </div>
+                  <div className="form-group full-width" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <label style={{ marginBottom: 0 }}>Fragile ?</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsFragile(!isFragile)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        background: isFragile ? '#f59e0b' : '#cbd5e1',
+                        color: '#fff',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {isFragile ? 'OUI 🍷' : 'NON 📦'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* PARTICULIER FORM */
+                <>
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}>Que souhaitez-vous faire ?</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setParticulierMode('envoi')}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: `2px solid ${particulierMode === 'envoi' ? 'var(--color-primary)' : '#cbd5e1'}`,
+                          background: particulierMode === 'envoi' ? 'rgba(13,33,73,0.08)' : '#fff',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Envoyer un colis
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setParticulierMode('recuperation')}
+                        style={{
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: `2px solid ${particulierMode === 'recuperation' ? 'var(--color-primary)' : '#cbd5e1'}`,
+                          background: particulierMode === 'recuperation' ? 'rgba(13,33,73,0.08)' : '#fff',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Faire récupérer un colis
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}>📍 Point de Récupération</label>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-user"></i> {particulierMode === 'envoi' ? 'Votre nom' : 'Nom de l\'expéditeur'}</label>
+                    <input type="text" value={expediteurNom} onChange={(e) => setExpediteurNom(e.target.value)} required placeholder="Nom complet" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-phone"></i> Téléphone</label>
+                    <PhoneInput value={expediteurTel} onChange={setExpediteurTel} required placeholder="70 00 00 00" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-map-location"></i> Quartier</label>
+                    <input type="text" value={expediteurQuartier} onChange={(e) => setExpediteurQuartier(e.target.value)} placeholder="Ex: Badalabougou" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-house"></i> Adresse précise</label>
+                    <input type="text" value={expediteurAdresse} onChange={(e) => setExpediteurAdresse(e.target.value)} required placeholder="Adresse précise" />
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}>🎯 Destinataire</label>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-user"></i> Nom du destinataire</label>
+                    <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} required placeholder="Nom du destinataire" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-phone"></i> Téléphone destinataire</label>
+                    <PhoneInput value={recipientPhone} onChange={setRecipientPhone} required placeholder="70 00 00 00" />
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-map-location-dot"></i> Quartier de livraison</label>
+                    <select value={selectedQuartierId} onChange={handleQuartierChange} required>
+                      <option value="">Sélectionner le quartier...</option>
+                      {quartiers.map(q => (
+                        <option key={q.id} value={q.id}>{q.nom} ({q.tarifLivraison.toLocaleString()} FCFA)</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label><i className="fa-solid fa-map-pin"></i> Adresse précise destinataire</label>
+                    <input type="text" value={addressPrecise} onChange={(e) => setAddressPrecise(e.target.value)} required placeholder="Rue, porte, repère..." />
+                  </div>
+
+                  <div className="form-group full-width">
+                    <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}>📦 Votre colis</label>
+                  </div>
+                  <div className="form-group full-width">
+                    <label>Que contient le colis ?</label>
+                    <textarea value={descriptionArticle} onChange={(e) => setDescriptionArticle(e.target.value)} required rows={2} placeholder="Ex: Clés de maison, Chaussures, Pli..." />
+                  </div>
+                  <div className="form-group">
+                    <label>Valeur approximative (FCFA)</label>
+                    <input type="number" value={valeurColis} onChange={(e) => setValeurColis(e.target.value)} placeholder="Ex: 5000" />
+                  </div>
+                  <div className="form-group">
+                    <label>Instructions particulières</label>
+                    <input type="text" value={instructionsLivreur} onChange={(e) => setInstructionsLivreur(e.target.value)} placeholder="Ex: Remettre en main propre" />
+                  </div>
+                </>
               )}
-
-              {/* Delivery Destination */}
-              <div className="form-group">
-                <label><i className="fa-solid fa-map-location-dot"></i> Quartier de Bamako</label>
-                <select value={selectedQuartierId} onChange={handleQuartierChange} required>
-                  <option value="">Sélectionner le quartier...</option>
-                  {quartiers.map(q => (
-                    <option key={q.id} value={q.id}>{q.nom} ({q.tarifLivraison.toLocaleString()} FCFA)</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label><i className="fa-solid fa-wallet"></i> Frais de livraison</label>
-                <input
-                  type="text"
-                  value={`${deliveryFee.toLocaleString()} FCFA`}
-                  className="readonly-input"
-                  readOnly
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label><i className="fa-solid fa-map-pin"></i> Adresse précise de livraison</label>
-                <input
-                  type="text"
-                  value={addressPrecise}
-                  onChange={(e) => setAddressPrecise(e.target.value)}
-                  required
-                  placeholder="Ex: Rue 14, Porte 250, à côté de la pharmacie"
-                />
-              </div>
 
               {/* Leaflet GPS Mapping */}
               <div className="form-group full-width">
-                <label><i className="fa-solid fa-earth-africa"></i> Position GPS du destinataire (Optionnel)</label>
+                <label><i className="fa-solid fa-earth-africa"></i> Position GPS de livraison (Optionnel)</label>
                 <div ref={mapContainerRef} className="mini-map"></div>
                 <span className="map-help">Cliquez sur la carte pour définir précisément le point de livraison</span>
               </div>
 
               {/* Order Summary box */}
               <div className="form-group full-width order-summary-box">
-                {selectedPartnerId && (
-                  <div className="summary-line">
-                    <span>Sous-total articles :</span>
-                    <span>{itemsSubtotal.toLocaleString()} FCFA</span>
+                {userProfileType === 'e-commercant' ? (
+                  <>
+                    <div className="summary-line">
+                      <span>Montant commande :</span>
+                      <span>{(parseFloat(montantCmd) || 0).toLocaleString()} FCFA</span>
+                    </div>
+                    <div className="summary-line">
+                      <span>Frais livraison :</span>
+                      <span>{deliveryFee.toLocaleString()} FCFA</span>
+                    </div>
+                    <div className="summary-line total-line">
+                      <span>Montant à encaisser :</span>
+                      <span>{((modePaiement === 'livraison' ? (parseFloat(montantCmd) || 0) : 0) + deliveryFee).toLocaleString()} FCFA</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="summary-line total-line">
+                    <span>Frais de livraison :</span>
+                    <span>{deliveryFee.toLocaleString()} FCFA</span>
                   </div>
                 )}
-                <div className="summary-line">
-                  <span>Frais de livraison :</span>
-                  <span>{deliveryFee.toLocaleString()} FCFA</span>
-                </div>
-                <div className="summary-line total-line">
-                  <span>Total à collecter :</span>
-                  <span>{grandTotal.toLocaleString()} FCFA</span>
-                </div>
               </div>
 
               <button type="submit" className="btn btn-primary full-width submit-btn">
-                <i className="fa-solid fa-paper-plane"></i> Soumettre la Commande
+                <i className="fa-solid fa-paper-plane"></i> {userProfileType === 'e-commercant' ? 'CONFIRMER LA COMMANDE' : 'DEMANDER LA LIVRAISON'}
               </button>
             </form>
           </div>
