@@ -225,6 +225,8 @@ export default function PublicLandingPage() {
         `📝 INSTRUCTIONS PARTICULIÈRES: ${instructionsLivreur || 'Aucune'}`;
     }
 
+    const includeFrictionless = userProfileType === 'e-commercant' || (userProfileType === 'particulier' && particulierMode === 'recuperation');
+
     const payload = {
       nomClient: recipientName,
       telephoneClient: recipientPhone,
@@ -235,7 +237,10 @@ export default function PublicLandingPage() {
       longitude: longitude ? parseFloat(longitude) : null,
       lignesProduits: cleanLines,
       partenaireId: selectedPartnerId ? parseInt(selectedPartnerId) : null,
-      descriptionArticle: computedDescription
+      descriptionArticle: computedDescription,
+      nomExpediteur: includeFrictionless && expediteurNom ? expediteurNom.trim() : null,
+      telephoneExpediteur: includeFrictionless && expediteurTel ? expediteurTel.trim() : null,
+      adresseExpediteur: includeFrictionless && expediteurAdresse ? expediteurAdresse.trim() : null
     };
 
     try {
