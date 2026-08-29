@@ -21,6 +21,7 @@ export default function AdminLivreurs() {
   const [driverNom, setDriverNom] = useState('');
   const [driverPrenom, setDriverPrenom] = useState('');
   const [driverTelephone, setDriverTelephone] = useState('');
+  const [driverId, setDriverId] = useState('');
 
   // Newly created credentials notification banner
   const [createdCredentials, setCreatedCredentials] = useState<{
@@ -63,52 +64,85 @@ export default function AdminLivreurs() {
     loadDailyStats(selectedDate);
   }, [token, selectedDate]);
 
+  const handleEditDriverClick = (d: Livreur) => {
+    setDriverId(String(d.id));
+    setDriverUsername(d.username);
+    setDriverEmail(d.email || '');
+    setDriverNom(d.nom || '');
+    setDriverPrenom(d.prenom || '');
+    setDriverTelephone(d.telephone || '');
+    setDriverPassword('');
+    setDriverConfirmPassword('');
+  };
+
+  const handleDriverFormCancel = () => {
+    setDriverId('');
+    setDriverUsername('');
+    setDriverEmail('');
+    setDriverPassword('');
+    setDriverConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setDriverNom('');
+    setDriverPrenom('');
+    setDriverTelephone('');
+  };
+
+  const handleDeleteDriverClick = async (id: number) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce livreur ? Cette action est irréversible.')) return;
+    try {
+      await apiFetch(`/auth/livreurs/${id}`, { method: 'DELETE', token });
+      showToast('Livreur supprimé avec succès.');
+      if (Number(driverId) === id) handleDriverFormCancel();
+      loadDrivers();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erreur de suppression du livreur.', 'error');
+    }
+  };
+
   const handleDriverSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (driverPassword.length < 6) {
-      showToast('Le mot de passe doit faire au moins 6 caractères.', 'error');
-      return;
-    }
-
-    if (driverPassword !== driverConfirmPassword) {
-      showToast('Les mots de passe ne correspondent pas.', 'error');
-      return;
+    if (driverPassword || !driverId) {
+      if (driverPassword.length < 6) {
+        showToast('Le mot de passe doit faire au moins 6 caractères.', 'error');
+        return;
+      }
+      if (driverPassword !== driverConfirmPassword) {
+        showToast('Les mots de passe ne correspondent pas.', 'error');
+        return;
+      }
     }
 
     const hasEmail = driverEmail.trim().length > 0;
     const payload = {
       username: driverUsername,
       email: hasEmail ? driverEmail.trim() : null,
-      password: driverPassword,
+      password: driverPassword ? driverPassword : null,
       nom: driverNom,
       prenom: driverPrenom,
       telephone: driverTelephone,
     };
 
     try {
-      await apiFetch('/auth/register-livreur', { method: 'POST', token, body: payload });
-      showToast('Compte livreur créé avec succès.');
-      
-      setCreatedCredentials({
-        username: driverUsername,
-        password: driverPassword,
-        hasEmail,
-      });
+      if (driverId) {
+        await apiFetch(`/auth/livreurs/${driverId}`, { method: 'PUT', token, body: payload });
+        showToast('Livreur mis à jour avec succès.');
+      } else {
+        await apiFetch('/auth/register-livreur', { method: 'POST', token, body: payload });
+        showToast('Compte livreur créé avec succès.');
+        setCreatedCredentials({
+          username: driverUsername,
+          password: driverPassword,
+          hasEmail,
+        });
+      }
 
-      setDriverUsername('');
-      setDriverEmail('');
-      setDriverPassword('');
-      setDriverConfirmPassword('');
-      setShowPassword(false);
-      setShowConfirmPassword(false);
-      setDriverNom('');
-      setDriverPrenom('');
-      setDriverTelephone('');
+      handleDriverFormCancel();
       loadDrivers();
       loadDailyStats(selectedDate);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Erreur de création de compte livreur.', 'error');
+      showToast(err instanceof Error ? err.message : 'Erreur de sauvegarde compte livreur.', 'error');
     }
   };
 
@@ -247,6 +281,7 @@ export default function AdminLivreurs() {
                   <th>E-mail</th>
                   <th>Mode Connexion</th>
                   <th>Téléphone</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,6 +310,16 @@ export default function AdminLivreurs() {
                           )}
                         </td>
                         <td>{d.telephone || <span className="text-muted">—</span>}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => handleEditDriverClick(d)} className="btn btn-secondary btn-sm">
+                              <i className="fa-solid fa-pen-to-square"></i> Modifier
+                            </button>
+                            <button onClick={() => handleDeleteDriverClick(d.id)} className="btn btn-danger btn-sm">
+                              <i className="fa-solid fa-trash"></i> Supprimer
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -288,7 +333,7 @@ export default function AdminLivreurs() {
         <div className="card glass-card stock-control-card">
           <div className="card-header">
             <div className="card-icon"><i className="fa-solid fa-user-plus"></i></div>
-            <h2>Enregistrer un Nouveau Livreur</h2>
+            <h2>{driverId ? 'Modifier le Livreur' : 'Enregistrer un Nouveau Livreur'}</h2>
           </div>
 
           <div style={{ marginBottom: '15px', padding: '10px 12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', borderLeft: '3px solid #3b82f6', fontSize: '0.85rem' }}>
@@ -304,6 +349,7 @@ export default function AdminLivreurs() {
                 value={driverUsername}
                 onChange={(e) => setDriverUsername(e.target.value)}
                 required
+                disabled={!!driverId}
                 placeholder="Ex: amadou_livreur"
               />
             </div>
@@ -420,9 +466,14 @@ export default function AdminLivreurs() {
               />
             </div>
 
-            <div className="form-actions full-width" style={{ marginTop: '15px' }}>
-              <button type="submit" className="btn btn-primary full-width">
-                <i className="fa-solid fa-user-check"></i> Créer le Compte Livreur
+            <div className="form-actions full-width" style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+              {driverId && (
+                <button type="button" onClick={handleDriverFormCancel} className="btn btn-secondary">
+                  Annuler
+                </button>
+              )}
+              <button type="submit" className="btn btn-primary" style={!driverId ? { width: '100%' } : { flex: 1 }}>
+                <i className="fa-solid fa-user-check"></i> {driverId ? 'Enregistrer les Modifications' : 'Créer le Compte Livreur'}
               </button>
             </div>
           </form>

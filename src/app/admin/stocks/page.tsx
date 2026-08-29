@@ -99,7 +99,24 @@ export default function AdminStocks() {
       handleProductFormCancel();
       loadStocks();
     } catch (err) {
-      showToast('Erreur lors de la sauvegarde du produit.', 'error');
+      showToast(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde du produit.', 'error');
+    }
+  };
+
+  const handleDeleteProduct = async (id: number) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce stock/produit ? Cette action coupera toute visibilité associée.')) return;
+    try {
+      await apiFetch(`/produits/${id}`, {
+        method: 'DELETE',
+        token,
+      });
+      showToast('Produit supprimé avec succès.');
+      if (Number(productId) === id) {
+        handleProductFormCancel();
+      }
+      loadStocks();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erreur lors de la suppression.', 'error');
     }
   };
 
@@ -146,9 +163,14 @@ export default function AdminStocks() {
                         <td><span className="badge en_cours">{s.sortisPourLivraison ?? 0} sortis</span></td>
                         <td><span className="badge reportee">{s.retournes ?? 0} retournés</span></td>
                         <td>
-                          <button onClick={() => handleEditProductClick(s)} className="btn btn-secondary btn-sm">
-                            <i className="fa-solid fa-pen-to-square"></i> Modifier / Stock
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => handleEditProductClick(s)} className="btn btn-secondary btn-sm">
+                              <i className="fa-solid fa-pen-to-square"></i> Modifier / Stock
+                            </button>
+                            <button onClick={() => handleDeleteProduct(s.id)} className="btn btn-danger btn-sm">
+                              <i className="fa-solid fa-trash"></i> Supprimer
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

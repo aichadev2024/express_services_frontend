@@ -59,6 +59,23 @@ export default function AdminPartenaires() {
     }
   };
 
+  const handleDeletePartenaire = async (id: number) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce partenaire ? Cette action est irréversible.')) return;
+    try {
+      await apiFetch(`/partenaires/${id}`, {
+        method: 'DELETE',
+        token,
+      });
+      showToast('Partenaire supprimé avec succès.');
+      if (Number(partenaireId) === id) {
+        handlePartenaireFormCancel();
+      }
+      loadPartenaires();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erreur lors de la suppression.', 'error');
+    }
+  };
+
   return (
     <div className="subtab-pane active">
       <div className="stock-grid">
@@ -91,9 +108,14 @@ export default function AdminPartenaires() {
                       <td><strong>{p.nom}</strong></td>
                       <td><span className="text-muted"><i className="fa-solid fa-phone"></i> {p.telephone}</span></td>
                       <td>
-                        <button onClick={() => handleEditPartenaireClick(p)} className="btn btn-secondary btn-sm">
-                          <i className="fa-solid fa-pen-to-square"></i> Modifier
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => handleEditPartenaireClick(p)} className="btn btn-secondary btn-sm">
+                            <i className="fa-solid fa-pen-to-square"></i> Modifier
+                          </button>
+                          <button onClick={() => handleDeletePartenaire(p.id)} className="btn btn-danger btn-sm">
+                            <i className="fa-solid fa-trash"></i> Supprimer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
