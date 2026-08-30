@@ -100,6 +100,18 @@ export default function AdminLivreurs() {
     }
   };
 
+  const handleToggleActiveClick = async (d: Livreur) => {
+    const actionName = d.actif ? 'Désactiver' : 'Activer';
+    if (!window.confirm(`Voulez-vous vraiment ${actionName.toLowerCase()} ce livreur ?`)) return;
+    try {
+      await apiFetch(`/auth/livreurs/${d.id}/toggle-active`, { method: 'PUT', token });
+      showToast(`Livreur ${actionName.toLowerCase()} avec succès.`);
+      loadDrivers();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : `Erreur lors de la modification de l'état du livreur.`, 'error');
+    }
+  };
+
   const handleDriverSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -296,7 +308,14 @@ export default function AdminLivreurs() {
                       <tr key={d.id}>
                         <td><strong>#{d.id}</strong></td>
                         <td><span className="text-muted">@{d.username}</span></td>
-                        <td><strong>{d.prenom} {d.nom}</strong></td>
+                        <td>
+                          <strong>{d.prenom} {d.nom}</strong>
+                          {!d.actif && (
+                            <span className="badge" style={{ marginLeft: '8px', fontSize: '0.65rem', background: '#ef4444', color: 'white' }}>
+                              Désactivé
+                            </span>
+                          )}
+                        </td>
                         <td>{d.email || <span className="text-muted">Aucun</span>}</td>
                         <td>
                           {hasEmail ? (
@@ -312,11 +331,14 @@ export default function AdminLivreurs() {
                         <td>{d.telephone || <span className="text-muted">—</span>}</td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleEditDriverClick(d)} className="btn btn-secondary btn-sm">
-                              <i className="fa-solid fa-pen-to-square"></i> Modifier
+                            <button onClick={() => handleEditDriverClick(d)} className="btn btn-secondary btn-sm" title="Modifier">
+                              <i className="fa-solid fa-pen-to-square"></i>
                             </button>
-                            <button onClick={() => handleDeleteDriverClick(d.id)} className="btn btn-danger btn-sm">
-                              <i className="fa-solid fa-trash"></i> Supprimer
+                            <button onClick={() => handleToggleActiveClick(d)} className={d.actif ? "btn btn-warning btn-sm" : "btn btn-success btn-sm"} title={d.actif ? "Désactiver ce compte" : "Réactiver ce compte"}>
+                              <i className={d.actif ? "fa-solid fa-user-slash" : "fa-solid fa-user-check"}></i>
+                            </button>
+                            <button onClick={() => handleDeleteDriverClick(d.id)} className="btn btn-danger btn-sm" title="Supprimer définitivement">
+                              <i className="fa-solid fa-trash"></i>
                             </button>
                           </div>
                         </td>

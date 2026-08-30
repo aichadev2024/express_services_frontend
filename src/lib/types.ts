@@ -102,6 +102,7 @@ export interface Livreur {
   telephone?: string | null;
   role: string;
   dateCreation: string;
+  actif: boolean;
 }
 
 export interface LoginResponse {
