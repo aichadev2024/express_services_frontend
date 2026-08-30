@@ -341,7 +341,7 @@ export default function AdminLivreurs() {
             <strong>Email Optionnel :</strong> Si le livreur n'a pas d'e-mail, laissez le champ vide. Il pourra se connecter directement avec son nom d'utilisateur et son mot de passe.
           </div>
 
-          <form onSubmit={handleDriverSubmit} className="form-grid">
+          <form onSubmit={handleDriverSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div className="form-group">
               <label>Nom d'Utilisateur <span style={{ color: 'red' }}>*</span></label>
               <input
