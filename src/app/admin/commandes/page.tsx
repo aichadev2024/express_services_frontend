@@ -4,7 +4,7 @@ import { useState, useEffect, type ChangeEvent } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useToasts, ToastContainer } from '@/components/Toast';
 import { useStoredToken } from '@/lib/authToken';
-import type { Commande, Livreur, StatutCommande } from '@/lib/types';
+import type { Commande, Livreur, StatutCommande, Quartier } from '@/lib/types';
 
 const STATUTS: StatutCommande[] = ['EN_ATTENTE', 'EN_COURS', 'LIVREE', 'ANNULEE', 'REJETEE', 'REPORTEE', 'INJOIGNABLE'];
 
@@ -12,6 +12,7 @@ export default function AdminCommandes() {
   const token = useStoredToken('admin_token');
   const [orders, setOrders] = useState<Commande[]>([]);
   const [drivers, setDrivers] = useState<Livreur[]>([]);
+  const [quartiers, setQuartiers] = useState<Quartier[]>([]);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -42,10 +43,20 @@ export default function AdminCommandes() {
     }
   };
 
+  const loadQuartiers = async () => {
+    try {
+      const res = await apiFetch<Quartier[]>('/quartiers').catch(() => []);
+      setQuartiers(Array.isArray(res) ? res : []);
+    } catch (err) {
+      console.error('Error preloading quartiers', err);
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
     loadOrders();
     loadDrivers();
+    loadQuartiers();
 
     const interval = setInterval(() => {
       loadOrders();
@@ -62,6 +73,17 @@ export default function AdminCommandes() {
       loadOrders();
     } catch (err) {
       showToast("Erreur lors de l'assignation.", 'error');
+    }
+  };
+
+  const handleQuartierUpdate = async (orderId: number, quartierIdVal: string) => {
+    if (!quartierIdVal) return;
+    try {
+      await apiFetch(`/commandes/${orderId}/quartier`, { method: 'PUT', token, body: { quartierId: parseInt(quartierIdVal) } });
+      showToast('Quartier mis à jour. Tarif recalculé.');
+      loadOrders();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erreur modification quartier.', 'error');
     }
   };
 
@@ -182,7 +204,17 @@ export default function AdminCommandes() {
                         )}
                       </td>
                       <td>
-                        <strong>{order.quartierNom}</strong><br />
+                        <select
+                          value={order.quartierId || ''}
+                          onChange={(e) => handleQuartierUpdate(order.id, e.target.value)}
+                          className="table-select"
+                          style={{ fontWeight: 'bold' }}
+                        >
+                          <option value="">Spécifier Quartier</option>
+                          {quartiers.map(q => (
+                            <option key={q.id} value={q.id}>{q.nom}</option>
+                          ))}
+                        </select><br />
                         <span className="text-muted">{order.adressePrecise}</span>
                       </td>
                       <td>
