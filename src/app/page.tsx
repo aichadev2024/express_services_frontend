@@ -556,7 +556,10 @@ export default function PublicLandingPage() {
                           background: modePaiement === 'deja_paye' ? 'rgba(16,185,129,0.08)' : '#fff',
                           fontWeight: 700,
                           cursor: 'pointer',
-                          fontSize: '12px'
+                          fontSize: '12px',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
+                          lineHeight: '1.2'
                         }}
                       >
                         ✅ Déjà payé
@@ -640,7 +643,7 @@ export default function PublicLandingPage() {
                 <>
                   <div className="form-group full-width">
                     <label style={{ fontWeight: 700, color: 'var(--color-primary)' }}>Que souhaitez-vous faire ?</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginTop: '6px' }}>
                       <button
                         type="button"
                         onClick={() => setParticulierMode('envoi')}
@@ -650,7 +653,10 @@ export default function PublicLandingPage() {
                           border: `2px solid ${particulierMode === 'envoi' ? 'var(--color-primary)' : '#cbd5e1'}`,
                           background: particulierMode === 'envoi' ? 'rgba(13,33,73,0.08)' : '#fff',
                           fontWeight: 700,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
+                          lineHeight: '1.2'
                         }}
                       >
                         Envoyer un colis
@@ -664,7 +670,10 @@ export default function PublicLandingPage() {
                           border: `2px solid ${particulierMode === 'recuperation' ? 'var(--color-primary)' : '#cbd5e1'}`,
                           background: particulierMode === 'recuperation' ? 'rgba(13,33,73,0.08)' : '#fff',
                           fontWeight: 700,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
+                          lineHeight: '1.2'
                         }}
                       >
                         Faire récupérer un colis
