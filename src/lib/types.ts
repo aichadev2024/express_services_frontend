@@ -19,6 +19,7 @@ export interface Partenaire {
   id: number;
   nom: string;
   telephone: string;
+  livraisonGratuite?: boolean;
 }
 
 export interface Produit {

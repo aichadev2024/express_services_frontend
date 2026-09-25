@@ -15,6 +15,7 @@ export default function AdminPartenaires() {
   const [partenaireId, setPartenaireId] = useState('');
   const [partenaireNom, setPartenaireNom] = useState('');
   const [partenaireTelephone, setPartenaireTelephone] = useState('');
+  const [partenaireLivraisonGratuite, setPartenaireLivraisonGratuite] = useState(false);
 
   const loadPartenaires = async () => {
     try {
@@ -33,17 +34,19 @@ export default function AdminPartenaires() {
     setPartenaireId(String(p.id));
     setPartenaireNom(p.nom);
     setPartenaireTelephone(p.telephone);
+    setPartenaireLivraisonGratuite(Boolean(p.livraisonGratuite));
   };
 
   const handlePartenaireFormCancel = () => {
     setPartenaireId('');
     setPartenaireNom('');
     setPartenaireTelephone('');
+    setPartenaireLivraisonGratuite(false);
   };
 
   const handlePartenaireSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const payload = { nom: partenaireNom, telephone: partenaireTelephone };
+    const payload = { nom: partenaireNom, telephone: partenaireTelephone, livraisonGratuite: partenaireLivraisonGratuite };
 
     try {
       await apiFetch(partenaireId ? `/partenaires/${partenaireId}` : '/partenaires', {
@@ -93,13 +96,14 @@ export default function AdminPartenaires() {
                   <th>ID</th>
                   <th>Nom</th>
                   <th>Téléphone</th>
+                  <th>Livraison</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {partenaires.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center' }}>Aucun partenaire enregistré.</td>
+                    <td colSpan={5} style={{ textAlign: 'center' }}>Aucun partenaire enregistré.</td>
                   </tr>
                 ) : (
                   partenaires.map(p => (
@@ -107,6 +111,7 @@ export default function AdminPartenaires() {
                       <td><strong>#{p.id}</strong></td>
                       <td><strong>{p.nom}</strong></td>
                       <td><span className="text-muted"><i className="fa-solid fa-phone"></i> {p.telephone}</span></td>
+                      <td>{p.livraisonGratuite ? <strong style={{ color: '#16a34a' }}>Offerte</strong> : <span className="text-muted">Payante</span>}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => handleEditPartenaireClick(p)} className="btn btn-secondary btn-sm">
@@ -151,6 +156,19 @@ export default function AdminPartenaires() {
                 required
                 placeholder="70 00 00 00"
               />
+            </div>
+
+            <div className="form-group full-width" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input
+                id="partenaire-livraison-gratuite"
+                type="checkbox"
+                checked={partenaireLivraisonGratuite}
+                onChange={(e) => setPartenaireLivraisonGratuite(e.target.checked)}
+                style={{ width: 'auto' }}
+              />
+              <label htmlFor="partenaire-livraison-gratuite" style={{ marginBottom: 0 }}>
+                Ce partenaire offre la livraison à ses clients (aucun frais ajouté)
+              </label>
             </div>
 
             <div className="form-actions full-width" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>

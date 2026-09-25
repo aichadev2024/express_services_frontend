@@ -185,7 +185,17 @@ export default function PublicLandingPage() {
     }, 0);
   }, [orderLines, products, selectedPartnerId]);
 
-  const grandTotal = itemsSubtotal + deliveryFee;
+  // Un partenaire qui offre la livraison : aucun frais n'est ajouté au total
+  const usesPartnerName = userProfileType === 'e-commercant' || (userProfileType === 'particulier' && particulierMode === 'recuperation');
+  const matchedPartner = useMemo(() => {
+    if (selectedPartnerId) return partenaires.find(p => p.id === parseInt(selectedPartnerId));
+    const nom = expediteurNom.trim().toLowerCase();
+    return usesPartnerName && nom ? partenaires.find(p => p.nom.trim().toLowerCase() === nom) : undefined;
+  }, [partenaires, selectedPartnerId, expediteurNom, usesPartnerName]);
+  const freeDelivery = Boolean(matchedPartner?.livraisonGratuite);
+  const effectiveDeliveryFee = freeDelivery ? 0 : deliveryFee;
+
+  const grandTotal = itemsSubtotal + effectiveDeliveryFee;
 
   // Handle Form Order Submission
   const handleOrderSubmit = async (e: FormEvent) => {
@@ -201,7 +211,7 @@ export default function PublicLandingPage() {
 
     if (userProfileType === 'e-commercant') {
       const qSelected = quartiers.find(q => q.id === parseInt(selectedQuartierId));
-      const qTarif = qSelected ? qSelected.tarifLivraison : 0;
+      const qTarif = freeDelivery ? 0 : (qSelected ? qSelected.tarifLivraison : 0);
       const mCmd = parseFloat(montantCmd) || 0;
       const totalEncaisser = modePaiement === 'livraison' ? (mCmd + qTarif) : qTarif;
 
@@ -761,17 +771,17 @@ export default function PublicLandingPage() {
                     </div>
                     <div className="summary-line">
                       <span>Frais livraison :</span>
-                      <span>{deliveryFee.toLocaleString()} FCFA</span>
+                      <span>{freeDelivery ? 'Offerte (0 FCFA)' : `${deliveryFee.toLocaleString()} FCFA`}</span>
                     </div>
                     <div className="summary-line total-line">
                       <span>Montant à encaisser :</span>
-                      <span>{((modePaiement === 'livraison' ? (parseFloat(montantCmd) || 0) : 0) + deliveryFee).toLocaleString()} FCFA</span>
+                      <span>{((modePaiement === 'livraison' ? (parseFloat(montantCmd) || 0) : 0) + effectiveDeliveryFee).toLocaleString()} FCFA</span>
                     </div>
                   </>
                 ) : (
                   <div className="summary-line total-line">
                     <span>Frais de livraison :</span>
-                    <span>{deliveryFee.toLocaleString()} FCFA</span>
+                    <span>{freeDelivery ? 'Offerte (0 FCFA)' : `${deliveryFee.toLocaleString()} FCFA`}</span>
                   </div>
                 )}
               </div>
